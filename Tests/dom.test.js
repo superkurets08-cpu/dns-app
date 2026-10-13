@@ -54,8 +54,8 @@ if (!dom) {
         return result;
     };
 
-    test('отрисованы все 12 вкладок типов записей', () => {
-        eq(doc.querySelectorAll('.tab').length, 12);
+    test('отрисованы все 11 вкладок типов записей', () => {
+        eq(doc.querySelectorAll('.tab').length, 11);
         eq(tab('MX').getAttribute('aria-selected'), 'true');
     });
 
@@ -79,7 +79,7 @@ if (!dom) {
         eq(missing.join(','), '');
     });
 
-    test('домен подставляется во все 12 типов', () => {
+    test('домен подставляется во все 11 типов', () => {
         const domain = doc.getElementById('domain');
         domain.value = 'mydomain.by';
         fire(domain);
@@ -98,7 +98,7 @@ if (!dom) {
         const host = doc.getElementById('f-host');
         host.value = '';
         fire(host);
-        eq(doc.getElementById('output').value, '10 example.com.');
+        eq(doc.getElementById('output').value, '@ 3600 MX 10 example.com.');
     });
 
     test('предпросмотр имени записи обновляется', () => {
@@ -165,7 +165,7 @@ if (!dom) {
         fire(toggle);
         eq(doc.querySelector('[data-field="ipv6"]').hidden, false);
         eq(doc.getElementById('output').value,
-            'mail.example.com. A 192.168.1.10\nmail.example.com. AAAA 2001:db8::1');
+            'mail.example.com. 3600 A 192.168.1.10\nmail.example.com. 3600 AAAA 2001:db8::1');
     });
 
     test('SPF требует хотя бы один механизм или провайдера', () => {
@@ -275,8 +275,8 @@ if (!dom) {
     });
 
     test('навигация стрелками переключает вкладки', () => {
-        tab('AAAA').dispatchEvent(new window.Event('click'));
-        tab('AAAA').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+        tab('BIMI').dispatchEvent(new window.Event('click'));
+        tab('BIMI').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
         eq(tab('TXT').getAttribute('aria-selected'), 'true');
     });
 
@@ -324,6 +324,50 @@ if (!dom) {
         ok(output.length > 0, 'запись не собрана');
         ok(output.indexOf('xn--e1afmkfd.xn--90ais') !== -1, output);
         ok(doc.getElementById('copy-button').disabled === false, 'копирование заблокировано');
+    });
+
+    test('TTL выбирается на общей странице и подставляется в записи', () => {
+        const ttl = doc.getElementById('ttl');
+        ok(ttl, 'нет переключателя TTL');
+        const options = Array.from(ttl.options).map(o => o.value);
+        eq(options.join(','), '300,3600,14400,86400,604800');
+        eq(ttl.value, '3600', 'значение по умолчанию');
+
+        const domain = doc.getElementById('domain');
+        domain.value = 'example.com';
+        fire(domain);
+
+        ttl.value = '300';
+        ttl.dispatchEvent(new window.Event('change'));
+        tab('MX').dispatchEvent(new window.Event('click'));
+        eq(doc.getElementById('output').value, '@ 300 MX 10 mail.example.com.');
+
+        ttl.value = '3600';
+        ttl.dispatchEvent(new window.Event('change'));
+    });
+
+    test('кнопка сброса называется «Сбросить»', () => {
+        eq(doc.getElementById('reset-button').textContent.trim(), 'Сбросить');
+    });
+
+    test('описание типа показывается под заголовком, а не под результатом', () => {
+        const title = doc.getElementById('record-title');
+        const description = doc.getElementById('record-description');
+        ok(description, 'нет блока описания');
+        const titleTop = title.getBoundingClientRect ? 0 : 0;
+        // В разметке описание идёт раньше результата
+        const html = doc.body.innerHTML;
+        ok(html.indexOf('record-description') < html.indexOf('id="output"'),
+            'описание должно быть над блоком результата');
+    });
+
+    test('вкладка A объединена с AAAA', () => {
+        eq(doc.getElementById('tab-AAAA'), null, 'отдельная вкладка AAAA осталась');
+        ok(doc.getElementById('tab-A'), 'нет вкладки A');
+        tab('A').dispatchEvent(new window.Event('click'));
+        eq(doc.querySelector('#tab-A').textContent, 'A/AAAA');
+        ok(doc.getElementById('f-includeIpv6'), 'нет галочки IPv6 в объединённой вкладке');
+        ok(doc.getElementById('f-ipv6'), 'нет поля IPv6 в объединённой вкладке');
     });
 
     test('панель DKIM содержит кнопку скрытия ключа', () => {

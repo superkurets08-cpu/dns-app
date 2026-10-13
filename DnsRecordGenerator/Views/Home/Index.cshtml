@@ -26,20 +26,36 @@
         </p>
 
         <section class="block">
-            <div class="field" id="domain-field">
-                <label class="field__label" for="domain">
-                    Ваш домен <span class="field__required" aria-hidden="true">*</span>
-                </label>
-                <input type="text" id="domain" value="example.com" maxlength="253"
-                       placeholder="example.com" autocomplete="off" spellcheck="false"
-                       aria-describedby="domain-hint domain-error">
-                <p class="field__hint" id="domain-hint">
-                    Домен, для которого создаются записи. Используется во всех генерируемых записях
-                    как базовая часть имени. Поля «Имя» в записях ниже задают только поддомен
-                    (например, <code>mail</code> для полного имени <code>mail.example.com</code>).
-                    Кириллический домен преобразуется в punycode автоматически.
-                </p>
-                <p class="field__error" id="domain-error" hidden></p>
+            <div class="grid grid--2">
+                <div class="field" id="domain-field">
+                    <label class="field__label" for="domain">
+                        Ваш домен <span class="field__required" aria-hidden="true">*</span>
+                    </label>
+                    <input type="text" id="domain" value="example.com" maxlength="253"
+                           placeholder="example.com" autocomplete="off" spellcheck="false"
+                           aria-describedby="domain-hint domain-error">
+                    <p class="field__hint" id="domain-hint">
+                        Домен, для которого создаются записи. Используется во всех генерируемых записях
+                        как базовая часть имени. Поля «Имя» в записях ниже задают только поддомен
+                        (например, <code>mail</code> для полного имени <code>mail.example.com</code>).
+                        Кириллический домен преобразуется в punycode автоматически.
+                    </p>
+                    <p class="field__error" id="domain-error" hidden></p>
+                </div>
+                <div class="field" id="ttl-field">
+                    <label class="field__label" for="ttl">TTL записей</label>
+                    <select id="ttl" aria-describedby="ttl-hint">
+                        <option value="300">5 минут (300)</option>
+                        <option value="3600" selected>1 час (3600)</option>
+                        <option value="14400">4 часа (14400)</option>
+                        <option value="86400">1 сутки (86400)</option>
+                        <option value="604800">1 неделя (604800)</option>
+                    </select>
+                    <p class="field__hint" id="ttl-hint">
+                        Время жизни записей в секундах. Одно значение для всех типов:
+                        чем меньше TTL, тем быстрее изменения разойдутся по DNS.
+                    </p>
+                </div>
             </div>
         </section>
 
@@ -48,17 +64,18 @@
         <section class="block">
             <h2 class="block__title" id="record-title"></h2>
             <p class="field__error" id="record-error" hidden></p>
+            <div class="description" id="record-description"></div>
             <div class="grid grid--2" id="params"></div>
             <div id="key-panel-host"></div>
             <div class="actions">
-                <button type="button" class="btn btn--outline" id="reset-button">Очистить</button>
+                <button type="button" class="btn btn--outline" id="reset-button">Сбросить</button>
             </div>
         </section>
 
         <section class="block">
             <h2 class="block__title">Готовая запись</h2>
             <p class="block__hint">
-                Формат «имя — тип — значение». Вставьте строку в панель управления доменом: для TXT- и
+                Формат «имя — TTL — тип — значение». Вставьте строку в панель управления доменом: для TXT- и
                 DMARC-записей кавычки нужно переносить вместе со значением.
             </p>
             <div class="result">
@@ -68,7 +85,6 @@
                     <span class="feedback" id="output-feedback"></span>
                 </div>
             </div>
-            <div class="description" id="record-description"></div>
         </section>
 
         <div id="extra-outputs"></div>

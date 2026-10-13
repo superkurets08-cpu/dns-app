@@ -40,7 +40,8 @@
     --text-muted: #6c757d;
     --text-disabled: #afb4b8;
     --white: #fff;
-    --radius-input: 5px;
+    --control-border: #d2d2d2;
+    --radius-input: 4px;
     --radius-btn: 5px;
     --radius-block: 6px;
     --font: Montserrat, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -56,7 +57,7 @@
     --fw-bold: 700;
     --control-height: clamp(46px, 8vw, 56px);
     --btn-height: clamp(44px, 7vw, 52px);
-    --border-control: 2px;
+    --border-control: 1px;
     --space-8: 8px;
     --space-12: 12px;
     --space-16: 16px;
@@ -262,7 +263,7 @@ select,
 textarea {
     width: 100%;
     padding: var(--space-16) var(--space-20);
-    border: var(--border-control) solid var(--blue-border);
+    border: var(--border-control) solid var(--control-border);
     border-radius: var(--radius-input);
     background-color: var(--white);
     font-family: inherit;
@@ -297,7 +298,7 @@ input:focus,
 select:focus,
 textarea:focus {
     outline: none;
-    border-color: var(--text);
+    border-color: var(--blue);
 }
 
 input:disabled,
@@ -376,17 +377,39 @@ select {
     width: 22px;
     height: 22px;
     margin: 0;
-    accent-color: var(--blue);
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid var(--control-border);
+    border-radius: 6px;
+    background-color: var(--white);
+    background-position: center center;
+    background-size: 14px;
+    background-repeat: no-repeat;
     cursor: pointer;
     flex-shrink: 0;
+    transition: background-color .15s ease, border-color .15s ease;
 }
 
-.choice input:hover:not(:disabled) {
-    accent-color: var(--orange);
+.choice input:checked {
+    background-color: var(--blue);
+    border-color: var(--blue);
+    background-image: url("data:image/svg+xml,%3Csvg width='15' height='13' viewBox='0 0 15 13' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14.2 2.4L5.8 12.2L0.9 7.3l0.7-0.9 3.7 3.6L12.6 0.8c0.2-0.2 0.5-0.2 0.7 0l0.8 0.8c0.2 0.2 0.2 0.6 0.1 0.8z' fill='white'/%3E%3C/svg%3E");
+}
+
+.choice input:hover:not(:disabled),
+.choice input:active:not(:disabled),
+.choice input:focus-visible:not(:disabled) {
+    border-color: var(--blue);
+}
+
+.choice input:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
 }
 
 .choice input:disabled {
     cursor: not-allowed;
+    opacity: .6;
 }
 
 .choice-note {
@@ -495,6 +518,10 @@ select {
     background-color: var(--white);
     font-size: var(--fs-s);
     line-height: 1.6;
+}
+
+#record-description {
+    margin-bottom: var(--space-20);
 }
 
 .description__title {

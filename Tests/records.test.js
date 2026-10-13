@@ -4,6 +4,7 @@ const { loadSources } = require('./harness');
 const R = loadSources().DnsRecords;
 
 const DOMAIN = 'example.com';
+const TTL = '3600';
 
 function defaults(id) {
     const record = R.find(id);
@@ -16,10 +17,10 @@ function defaults(id) {
     return { record, values };
 }
 
-function build(id, overrides) {
+function build(id, overrides, ttl) {
     const { record, values } = defaults(id);
     Object.assign(values, overrides);
-    return record.build(values, DOMAIN, record);
+    return record.build(values, DOMAIN, record, ttl === undefined ? TTL : ttl);
 }
 
 function txtSegments(recordLine) {
@@ -28,13 +29,13 @@ function txtSegments(recordLine) {
 
 suite('Схема: состав типов записей');
 
-test('объявлено ровно 12 типов записей', () => {
-    eq(R.all.length, 12);
+test('объявлено ровно 11 типов записей', () => {
+    eq(R.all.length, 11);
 });
 
 test('идентификаторы типов соответствуют заданию', () => {
     eq(R.all.map(r => r.id).join(','),
-        'MX,A,SPF,DKIM,DMARC,MTA-STS,TLS-RPT,SRV,CNAME,BIMI,AAAA,TXT');
+        'MX,A,SPF,DKIM,DMARC,MTA-STS,TLS-RPT,SRV,CNAME,BIMI,TXT');
 });
 
 test('набор параметров каждого типа соответствует заданию', () => {
@@ -49,7 +50,6 @@ test('набор параметров каждого типа соответст
         SRV: 'service,protocol,target,priority,weight,port',
         CNAME: 'alias,target',
         BIMI: 'selector,logo,useCertificate,certificate',
-        AAAA: 'host,ipv6',
         TXT: 'name,value'
     };
     R.all.forEach(record => {
@@ -82,45 +82,51 @@ test('у каждого типа есть описание назначения'
 suite('Генерация: форматы из задания');
 
 test('MX: приоритет и имя сервера', () => {
-    eq(build('MX'), '10 mail.example.com.');
-    eq(build('MX', { priority: '0', host: '' }), '0 example.com.');
+    eq(build('MX'), '@ 3600 MX 10 mail.example.com.');
+    eq(build('MX', { priority: '0', host: '' }), '@ 3600 MX 0 example.com.');
 });
 
-test('A: имя и адрес IPv4', () => {
-    eq(build('A'), 'mail.example.com. A 192.168.1.10');
+test('TTL подставляется во все записи', () => {
+    eq(build('MX', {}, '300'), '@ 300 MX 10 mail.example.com.');
+    eq(build('A', {}, '86400'), 'mail.example.com. 86400 A 192.168.1.10');
+    eq(build('TXT', {}, '604800'), 'example.com. 604800 TXT "google-site-verification=abc123"');
 });
 
-test('A: галочка IPv6 добавляет вторую строку AAAA', () => {
+test('A/AAAA: имя и адрес IPv4', () => {
+    eq(build('A'), 'mail.example.com. 3600 A 192.168.1.10');
+});
+
+test('A/AAAA: галочка IPv6 добавляет вторую строку AAAA', () => {
     eq(build('A', { includeIpv6: true }),
-        'mail.example.com. A 192.168.1.10\nmail.example.com. AAAA 2001:db8::1');
+        'mail.example.com. 3600 A 192.168.1.10\nmail.example.com. 3600 AAAA 2001:db8::1');
 });
 
-test('A: без галочки IPv6 остаётся одна строка', () => {
-    eq(build('A', { includeIpv6: false }), 'mail.example.com. A 192.168.1.10');
+test('A/AAAA: без галочки IPv6 остаётся одна строка', () => {
+    eq(build('A', { includeIpv6: false }), 'mail.example.com. 3600 A 192.168.1.10');
 });
 
 test('SPF: собирается политика, адреса, провайдеры и механизмы', () => {
     eq(build('SPF'),
-        'example.com. TXT "v=spf1 ip4:192.168.1.10 mx a ~all"');
+        'example.com. 3600 TXT "v=spf1 ip4:192.168.1.10 mx a ~all"');
 });
 
 test('SPF: механизмы ip6 собираются из адресов IPv6', () => {
     eq(build('SPF', { ips: 'ip6:2001:db8::1' }),
-        'example.com. TXT "v=spf1 ip6:2001:db8::1 mx a ~all"');
+        'example.com. 3600 TXT "v=spf1 ip6:2001:db8::1 mx a ~all"');
     eq(build('SPF', { ips: '192.168.1.10, ip6:2001:db8::1' }),
-        'example.com. TXT "v=spf1 ip4:192.168.1.10 ip6:2001:db8::1 mx a ~all"');
+        'example.com. 3600 TXT "v=spf1 ip4:192.168.1.10 ip6:2001:db8::1 mx a ~all"');
 });
 
 test('SPF: голый IPv6 получает префикс ip6, регистр нормализуется', () => {
     eq(build('SPF', { ips: '2001:DB8::1' }),
-        'example.com. TXT "v=spf1 ip6:2001:DB8::1 mx a ~all"');
+        'example.com. 3600 TXT "v=spf1 ip6:2001:DB8::1 mx a ~all"');
     eq(build('SPF', { ips: 'IP6:2001:db8::1' }),
-        'example.com. TXT "v=spf1 ip6:2001:db8::1 mx a ~all"');
+        'example.com. 3600 TXT "v=spf1 ip6:2001:db8::1 mx a ~all"');
 });
 
 test('DMARC: кириллический адрес превращается в punycode', () => {
     eq(build('DMARC', { rua: 'dmarc@пример.рф' }),
-        '_dmarc.example.com. TXT "v=DMARC1; p=quarantine; pct=100; rua=mailto:dmarc@xn--e1afmkfd.xn--p1ai; aspf=r; adkim=r"');
+        '_dmarc.example.com. 3600 TXT "v=DMARC1; p=quarantine; pct=100; rua=mailto:dmarc@xn--e1afmkfd.xn--p1ai; aspf=r; adkim=r"');
 });
 
 test('BIMI: кириллический URL превращается в punycode', () => {
@@ -154,11 +160,11 @@ test('SPF: без механизмов провайдеров запись не 
 
 test('DKIM: селектор, поддомен и значение записи', () => {
     eq(build('DKIM'),
-        'default._domainkey.example.com. TXT "v=DKIM1; k=rsa; p="');
+        'default._domainkey.example.com. 3600 TXT "v=DKIM1; k=rsa; p="');
 });
 
 test('DMARC: все теги в правильном порядке', () => {
-    eq(build('DMARC'), '_dmarc.example.com. TXT "v=DMARC1; p=quarantine; pct=100; ' +
+    eq(build('DMARC'), '_dmarc.example.com. 3600 TXT "v=DMARC1; p=quarantine; pct=100; ' +
         'rua=mailto:dmarc@example.com; aspf=r; adkim=r"');
 });
 
@@ -174,7 +180,7 @@ test('DMARC: ruf добавляется только когда заполнен
 
 test('MTA-STS: запись содержит только идентификатор политики', () => {
     const record = build('MTA-STS');
-    ok(record.indexOf('_mta-sts.example.com. TXT "v=STSv1; id=') === 0, record);
+    ok(record.indexOf('_mta-sts.example.com. 3600 TXT "v=STSv1; id=') === 0, record);
 });
 
 test('MTA-STS: ID политики генерируется в формате YYYYMMDDTHHMMSS', () => {
@@ -196,40 +202,40 @@ test('MTA-STS: пустой max_age не оставляет пустой стр�
 });
 
 test('TLS-RPT: адрес оборачивается в mailto', () => {
-    eq(build('TLS-RPT'), '_smtp._tls.example.com. TXT "v=TLSRPTv1; rua=mailto:tls@example.com"');
+    eq(build('TLS-RPT'), '_smtp._tls.example.com. 3600 TXT "v=TLSRPTv1; rua=mailto:tls@example.com"');
 });
 
 test('SRV: служба, протокол, приоритет, вес, порт и хост', () => {
     eq(build('SRV'),
-        '_autodiscover._tcp.example.com. SRV 0 0 443 autodiscover.example.com.');
+        '_autodiscover._tcp.example.com. 3600 SRV 0 0 443 autodiscover.example.com.');
 });
 
 test('SRV: заданный вес учитывается', () => {
     eq(build('SRV', { service: '_imap', protocol: '_tcp', weight: '10', port: '993' }),
-        '_imap._tcp.example.com. SRV 0 10 993 autodiscover.example.com.');
+        '_imap._tcp.example.com. 3600 SRV 0 10 993 autodiscover.example.com.');
 });
 
 test('CNAME: псевдоним и целевой домен с точкой', () => {
-    eq(build('CNAME'), 'mail.example.com. CNAME mail.yandex.ru.');
+    eq(build('CNAME'), 'mail.example.com. 3600 CNAME mail.yandex.ru.');
 });
 
 test('BIMI: логотип и необязательный VMC-сертификат', () => {
-    eq(build('BIMI'), 'default._bimi.example.com. TXT "v=BIMI1; l=https://example.com/logo.svg"');
+    eq(build('BIMI'), 'default._bimi.example.com. 3600 TXT "v=BIMI1; l=https://example.com/logo.svg"');
     eq(build('BIMI', { useCertificate: true }),
-        'default._bimi.example.com. TXT "v=BIMI1; l=https://example.com/logo.svg; a=https://example.com/cert.pem"');
+        'default._bimi.example.com. 3600 TXT "v=BIMI1; l=https://example.com/logo.svg; a=https://example.com/cert.pem"');
 });
 
 test('BIMI: без сертификата не остаётся висячей точки с запятой', () => {
     ok(build('BIMI').indexOf(';"') === -1, build('BIMI'));
 });
 
-test('AAAA: имя и адрес IPv6', () => {
-    eq(build('AAAA'), 'mail.example.com. AAAA 2001:db8::1');
+test('A/AAAA: отдельной вкладки AAAA больше нет', () => {
+    eq(R.find('AAAA'), undefined, 'тип AAAA не должен быть отдельной записью');
 });
 
 test('TXT: имя @ даёт корень домена', () => {
-    eq(build('TXT'), 'example.com. TXT "google-site-verification=abc123"');
-    eq(build('TXT', { name: 'mail' }), 'mail.example.com. TXT "google-site-verification=abc123"');
+    eq(build('TXT'), 'example.com. 3600 TXT "google-site-verification=abc123"');
+    eq(build('TXT', { name: 'mail' }), 'mail.example.com. 3600 TXT "google-site-verification=abc123"');
 });
 
 suite('Генерация: подстановка домена');
@@ -257,11 +263,11 @@ test('пробелы вокруг поддомена обрезаются', () =
 suite('Корректность TXT по RFC 1035');
 
 test('кавычки внутри значения экранируются', () => {
-    eq(build('TXT', { value: 'note="привет"' }), 'example.com. TXT "note=\\"привет\\""');
+    eq(build('TXT', { value: 'note="привет"' }), 'example.com. 3600 TXT "note=\\"привет\\""');
 });
 
 test('обратные слэши экранируются', () => {
-    eq(build('TXT', { value: 'path\\to\\file' }), 'example.com. TXT "path\\\\to\\\\file"');
+    eq(build('TXT', { value: 'path\\to\\file' }), 'example.com. 3600 TXT "path\\\\to\\\\file"');
 });
 
 test('строка только из спецсимволов остаётся корректной', () => {
@@ -270,7 +276,7 @@ test('строка только из спецсимволов остаётся �
 });
 
 test('пустое значение даёт пустую строку в кавычках', () => {
-    eq(build('TXT', { value: '' }), 'example.com. TXT ""');
+    eq(build('TXT', { value: '' }), 'example.com. 3600 TXT ""');
 });
 
 test('значение длиннее 255 байт разбивается на сегменты', () => {
@@ -297,7 +303,7 @@ test('разбиение считает байты, а не символы', () 
 
 suite('Устойчивость генерации');
 
-const PAYLOADS = ['', ' ', '"', '\\', '\n', '<b>', 'null', 'NaN', 'x'.repeat(1000), ' '];
+const PAYLOADS = ['', ' ', '"', '\\', '\n', '<b>', 'null', 'NaN', 'x'.repeat(1000), '\u0000'];
 
 test('ни один тип не падает на мусорных значениях', () => {
     R.all.forEach(record => {
@@ -319,7 +325,7 @@ test('ни один тип не падает на мусорных значен�
 });
 
 
-const PLAIN = ['MX', 'A', 'AAAA', 'SRV', 'CNAME'];
+const PLAIN = ['MX', 'A', 'SRV', 'CNAME'];
 
 function unescapedQuotes(line) {
     // Сначала убираем экранированные последовательности: иначе перекрывающиеся

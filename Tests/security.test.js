@@ -781,12 +781,12 @@ test('валидация поля селектора отвергает пере
 test('нормальные селекторы работают как раньше', () => {
     const dkim = recordValues('DKIM');
     dkim.values.publicKey = 'KEY';
-    eq(dkim.record.build(dkim.values, 'example.com', dkim.record),
-        'default._domainkey.example.com. TXT "v=DKIM1; k=rsa; p=KEY"');
+    eq(dkim.record.build(dkim.values, 'example.com', dkim.record, '3600'),
+        'default._domainkey.example.com. 3600 TXT "v=DKIM1; k=rsa; p=KEY"');
 
     const bimi = recordValues('BIMI');
-    ok(bimi.record.build(bimi.values, 'example.com', bimi.record)
-        .startsWith('default._bimi.example.com. TXT "v=BIMI1;'));
+    ok(bimi.record.build(bimi.values, 'example.com', bimi.record, '3600')
+        .startsWith('default._bimi.example.com. 3600 TXT "v=BIMI1;'));
 });
 
 test('домен ограничен длиной и безопасными символами', () => {

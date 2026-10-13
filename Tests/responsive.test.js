@@ -480,6 +480,44 @@ test('основные компоненты определены', () => {
     });
 });
 
+suite('Стиль: элементы в стиле HB.BY');
+
+test('поля ввода имеют серую рамку, а синюю при наведении и фокусе', () => {
+    // Серая рамка в покое, синяя при hover и focus — как на hb.by
+    ok(/--control-border:\s*#d2d2d2/.test(css), 'нет серого цвета рамки --control-border');
+    ok(/border:\s*var\(--border-control\)\s*solid\s*var\(--control-border\)/.test(css),
+        'поля ввода не используют серую рамку');
+    ok(/input:hover[\s\S]{0,120}border-color:\s*var\(--blue\)/.test(css),
+        'нет синей рамки при наведении');
+    ok(/input:focus[\s\S]{0,80}border-color:\s*var\(--blue\)/.test(css),
+        'нет синей рамки при фокусе');
+});
+
+test('чекбоксы нарисованы в стиле HB.BY, а не системным accent-color', () => {
+    ok(css.indexOf('accent-color') === -1, 'используется системный accent-color вместо своей отрисовки');
+    const block = css.match(/\.choice input\s*\{[\s\S]*?\n\}/);
+    ok(block, 'нет правила .choice input');
+    if (block) {
+        ok(/appearance:\s*none/.test(block[0]), 'чекбокс не переопределён через appearance: none');
+        ok(/border-radius/.test(block[0]), 'нет скругления чекбокса');
+    }
+    ok(/\.choice input:checked[\s\S]{0,200}background-image:\s*url\(/.test(css),
+        'нет галочки-картинки при выборе');
+});
+
+test('чекбокс использует фирменный синий', () => {
+    const checked = css.match(/\.choice input:checked\s*\{[\s\S]*?\n\}/);
+    ok(checked, 'нет правила для выбранного чекбокса');
+    if (checked) {
+        ok(/background-color:\s*var\(--blue\)/.test(checked[0]),
+            'выбранный чекбокс не синий');
+    }
+});
+
+test('толщина рамки поля 1px как на HB.BY', () => {
+    ok(/--border-control:\s*1px/.test(css), 'рамка поля не 1px');
+});
+
 suite('Адаптивность: проверка переменных');
 
 test('определены все необходимые переменные', () => {

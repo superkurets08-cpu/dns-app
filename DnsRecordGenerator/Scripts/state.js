@@ -1,9 +1,11 @@
 const DnsState = (function () {
     const DEFAULT_DOMAIN = 'example.com';
+    const DEFAULT_TTL = '3600';
 
     function create() {
         return {
             domain: DEFAULT_DOMAIN,
+            ttl: DEFAULT_TTL,
             recordId: DnsRecords.all[0].id,
             values: {}
         };
@@ -38,17 +40,23 @@ const DnsState = (function () {
         state.domain = domain;
     }
 
+    function setTtl(state, ttl) {
+        state.ttl = ttl;
+    }
+
     function resetRecord(state, recordId) {
         delete state.values[recordId || state.recordId];
     }
 
     return {
         DEFAULT_DOMAIN: DEFAULT_DOMAIN,
+        DEFAULT_TTL: DEFAULT_TTL,
         create: create,
         defaultValueOf: defaultValueOf,
         valuesFor: valuesFor,
         selectRecord: selectRecord,
         setDomain: setDomain,
+        setTtl: setTtl,
         resetRecord: resetRecord
     };
 })();

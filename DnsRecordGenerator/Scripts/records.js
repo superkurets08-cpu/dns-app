@@ -81,8 +81,8 @@ const DnsRecords = (function () {
         return chunks.map(chunk => '"' + chunk + '"').join(' ');
     }
 
-    function txtRecord(name, value) {
-        return name + ' ' + txtValue(value);
+    function txtRecord(name, value, ttl) {
+        return name + ' ' + ttl + ' ' + txtValue(value);
     }
 
     function mtaStsPolicyId() {
@@ -115,7 +115,7 @@ const DnsRecords = (function () {
             id: 'MX',
             label: 'MX',
             title: 'MX — приоритетный почтовый сервер',
-            description: 'MX-запись определяет, на какой сервер отправлять почту для вашего домена. Запись создаётся в корне домена, поэтому поддомен указывается в имени сервера.',
+            description: 'Почта домена уходит на указанный сервер. Чем ниже приоритет, тем раньше сервер получит письмо.',
             columns: 2,
             fields: [
                 {
@@ -132,16 +132,16 @@ const DnsRecords = (function () {
                 },
                 subdomainField('host', 'Имя сервера (поддомен)', 'mail')
             ],
-            build: function (values, domain, record) {
-                return values.priority + ' ' + fqdn(values.host, domain);
+            build: function (values, domain, record, ttl) {
+                return '@ ' + ttl + ' MX ' + values.priority + ' ' + fqdn(values.host, domain);
             }
         },
 
         {
             id: 'A',
-            label: 'A',
-            title: 'A — сопоставление имени с IPv4-адресом',
-            description: 'A-запись связывает имя хоста с его адресом IPv4. Используйте её для почтового сервера или веб-сервера домена. Для IPv6 рядом есть отдельный тип записи AAAA, а также галочка ниже, которая добавляет обе строки сразу.',
+            label: 'A/AAAA',
+            title: 'A/AAAA — сопоставление имени с IP-адресом',
+            description: 'A-запись связывает имя с адресом IPv4, AAAA — с адресом IPv6. Галочка ниже добавляет обе строки сразу.',
             columns: 2,
             fields: [
                 subdomainField('host', 'Имя хоста (поддомен)', 'mail'),
@@ -174,12 +174,12 @@ const DnsRecords = (function () {
                     rules: [{ test: Validators.ipv6, message: 'Введите корректный адрес IPv6, например 2001:db8::1' }]
                 }
             ],
-            build: function (values, domain, record) {
+            build: function (values, domain, record, ttl) {
                 const owner = fqdn(values.host, domain);
-                const lines = [owner + ' A ' + values.ip.trim()];
+                const lines = [owner + ' ' + ttl + ' A ' + values.ip.trim()];
 
                 if (values.includeIpv6 && !Validators.empty(values.ipv6)) {
-                    lines.push(owner + ' AAAA ' + values.ipv6.trim());
+                    lines.push(owner + ' ' + ttl + ' AAAA ' + values.ipv6.trim());
                 }
 
                 return lines.join('\n');
@@ -190,7 +190,7 @@ const DnsRecords = (function () {
             id: 'SPF',
             label: 'SPF',
             title: 'SPF — перечень серверов, разрешённых отправлять почту',
-            description: 'SPF публикуется одной TXT-записью в корне домена. Он защищает домен от подделки писем и проверяется получателями почты.',
+            description: 'Список серверов, которым разрешено отправлять письма от имени домена. Одна TXT-запись в корне.',
             columns: 1,
             fields: [
                 {
@@ -253,7 +253,7 @@ const DnsRecords = (function () {
 
                 return null;
             },
-            build: function (values, domain, record) {
+            build: function (values, domain, record, ttl) {
                 const parts = ['v=spf1'];
 
                 String(values.ips || '')
@@ -295,7 +295,7 @@ const DnsRecords = (function () {
 
                 parts.push(pick(record, values, 'policy'));
 
-                return txtRecord(fqdn('@', domain), parts.join(' '));
+                return txtRecord(fqdn('@', domain), parts.join(' '), ttl);
             }
         },
 
@@ -303,7 +303,7 @@ const DnsRecords = (function () {
             id: 'DKIM',
             label: 'DKIM',
             title: 'DKIM — цифровая подпись исходящих писем',
-            description: 'DKIM связывает домен с парой RSA-ключей. Публичный ключ попадает в DNS-запись, приватный остаётся у вас и используется почтовым сервером для подписи писем. Обе части генерируются в браузере и никуда не отправляются. Публичный ключ длиннее 255 символов, поэтому такие TXT-записи панели управления обычно разбивают на части автоматически — вводите значение ровно так, как оно сгенерировано.',
+            description: 'Публичный ключ для проверки подписей исходящих писем. Приватный остаётся у вас и никуда не отправляется. Ключ длиннее 255 символов — вводите значение ровно так, как оно сгенерировано.',
             columns: 2,
             keyGenerator: true,
             fields: [
@@ -341,9 +341,9 @@ const DnsRecords = (function () {
                     hint: 'Публичный ключ автоматически подставляется в запись. Он не секретный и публикуется в DNS. Ключ 2048 бит длиннее предела в 255 байт, поэтому запись разбивается на несколько сегментов — так публикуются все настоящие DKIM-записи, а DNS-сервер склеивает их обратно.'
                 }
             ],
-            build: function (values, domain, record) {
+            build: function (values, domain, record, ttl) {
                 const publicKey = String(values.publicKey || '').replace(/\s+/g, '');
-                return qualifiedName(values.selector, '_domainkey.' + domain + '.') + ' ' +
+                return qualifiedName(values.selector, '_domainkey.' + domain + '.') + ' ' + ttl + ' ' +
                     txtValue('v=DKIM1; k=rsa; p=' + publicKey);
             }
         },
@@ -352,7 +352,7 @@ const DnsRecords = (function () {
             id: 'DMARC',
             label: 'DMARC',
             title: 'DMARC — политика для писем, не прошедших SPF и DKIM',
-            description: 'DMARC сообщает получателям, что делать с письмами, которые не подтвердили ни SPF, ни DKIM, и собирает агрегированные отчёты о доставке.',
+            description: 'Правило для писем, не прошедших SPF и DKIM: отклонить, отправить в спам или только прислать отчёт.',
             columns: 2,
             fields: [
                 {
@@ -420,7 +420,7 @@ const DnsRecords = (function () {
                     ]
                 }
             ],
-            build: function (values, domain, record) {
+            build: function (values, domain, record, ttl) {
                 const tags = ['v=DMARC1', 'p=' + pick(record, values, 'policy'), 'pct=' + values.pct];
 
                 if (!Validators.empty(values.rua)) {
@@ -434,7 +434,7 @@ const DnsRecords = (function () {
                 tags.push('aspf=' + pick(record, values, 'aspf'));
                 tags.push('adkim=' + pick(record, values, 'adkim'));
 
-                return '_dmarc.' + asciiDomain(domain) + '. ' + txtValue(tags.join('; '));
+                return '_dmarc.' + asciiDomain(domain) + '. ' + ttl + ' ' + txtValue(tags.join('; '));
             }
         },
 
@@ -442,7 +442,7 @@ const DnsRecords = (function () {
             id: 'MTA-STS',
             label: 'MTA-STS',
             title: 'MTA-STS — принудительное шифрование при отправке почты',
-            description: 'MTA-STS требует, чтобы отправляющие серверы подключались только по TLS и проверяли сертификат получателя. DNS-запись содержит лишь версию политики — сама политика публикуется отдельным файлом на сайте домена.',
+            description: 'Требование шифровать соединения. В DNS только версия политики, сам файл размещается на сайте домена.',
             columns: 3,
             fields: [
                 {
@@ -477,8 +477,8 @@ const DnsRecords = (function () {
                     rules: [{ test: Validators.integerInRange(0, 31536000), message: 'Введите целое число не больше 31536000' }]
                 }
             ],
-            build: function (values, domain, record) {
-                return '_mta-sts.' + asciiDomain(domain) + '. ' + txtValue('v=STSv1; id=' + values.id.trim());
+            build: function (values, domain, record, ttl) {
+                return '_mta-sts.' + asciiDomain(domain) + '. ' + ttl + ' ' + txtValue('v=STSv1; id=' + values.id.trim());
             },
             extraOutputs: [
                 {
@@ -505,7 +505,7 @@ const DnsRecords = (function () {
             id: 'TLS-RPT',
             label: 'TLS-RPT',
             title: 'TLS-RPT — отчёты о проблемах с шифрованием',
-            description: 'TLS-RPT сообщает отправляющему серверу, куда присылать отчёты о неудачных TLS-соединениях, чтобы администратор видел проблемы с доставкой зашифрованной почты.',
+            description: 'Адрес для отчётов о неудачных TLS-соединениях. Дополняет MTA-STS.',
             columns: 1,
             fields: [
                 {
@@ -518,8 +518,8 @@ const DnsRecords = (function () {
                     rules: [{ test: Validators.email, message: 'Введите корректный email, например tls@example.com' }]
                 }
             ],
-            build: function (values, domain, record) {
-                return '_smtp._tls.' + asciiDomain(domain) + '. ' + txtValue('v=TLSRPTv1; rua=mailto:' + Validators.toAsciiEmail(values.rua));
+            build: function (values, domain, record, ttl) {
+                return '_smtp._tls.' + asciiDomain(domain) + '. ' + ttl + ' ' + txtValue('v=TLSRPTv1; rua=mailto:' + Validators.toAsciiEmail(values.rua));
             }
         },
 
@@ -527,7 +527,7 @@ const DnsRecords = (function () {
             id: 'SRV',
             label: 'SRV',
             title: 'SRV — адрес и порт сервера службы',
-            description: 'SRV-запись описывает, где искать конкретную службу (IMAP, POP3, SMTP, автоопределение) и с каким приоритетом, весом и портом.',
+            description: 'Адрес, порт и приоритет службы: IMAP, SMTP, автонастройка почты.',
             columns: 3,
             fields: [
                 {
@@ -597,8 +597,8 @@ const DnsRecords = (function () {
                     rules: [{ test: Validators.integerInRange(1, 65535), message: 'Введите порт от 1 до 65535' }]
                 }
             ],
-            build: function (values, domain, record) {
-                return pick(record, values, 'service') + '.' + pick(record, values, 'protocol') + '.' + asciiDomain(domain) + '. SRV ' +
+            build: function (values, domain, record, ttl) {
+                return pick(record, values, 'service') + '.' + pick(record, values, 'protocol') + '.' + asciiDomain(domain) + '. ' + ttl + ' SRV ' +
                     values.priority + ' ' + values.weight + ' ' + values.port + ' ' +
 absolute(values.target);
             }
@@ -608,7 +608,7 @@ absolute(values.target);
             id: 'CNAME',
             label: 'CNAME',
             title: 'CNAME — псевдоним на другой домен',
-            description: 'CNAME делает одно имя постоянным псевдонимом другого. У записи CNAME не может быть других записей, кроме TXT.',
+            description: 'Псевдоним одного имени на другое. Только на чистое имя: на нём не должно быть других записей — ни A, ни MX, ни TXT.',
             columns: 2,
             fields: [
                 subdomainField('alias', 'Псевдоним (поддомен)', 'mail'),
@@ -622,8 +622,8 @@ absolute(values.target);
                     rules: [{ test: Validators.hostname, message: 'Введите корректное доменное имя, например mail.yandex.ru' }]
                 }
             ],
-            build: function (values, domain, record) {
-                return fqdn(values.alias, domain) + ' CNAME ' + absolute(values.target);
+            build: function (values, domain, record, ttl) {
+                return fqdn(values.alias, domain) + ' ' + ttl + ' CNAME ' + absolute(values.target);
             }
         },
 
@@ -631,7 +631,7 @@ absolute(values.target);
             id: 'BIMI',
             label: 'BIMI',
             title: 'BIMI — логотип в почтовых ящиках получателей',
-            description: 'BIMI показывает логотип компании рядом с письмами, прошедшими DMARC. Логотип размещается на стороне отправителя, а запись только объявляет ссылку на него.',
+            description: 'Ссылка на логотип, который почта показывает рядом с письмами, прошедшими DMARC.',
             columns: 2,
             fields: [
                 {
@@ -672,37 +672,14 @@ absolute(values.target);
                     rules: [{ test: Validators.url, message: 'Введите корректный https-адрес сертификата' }]
                 }
             ],
-            build: function (values, domain, record) {
+            build: function (values, domain, record, ttl) {
                 const tags = ['v=BIMI1', 'l=' + Validators.toAsciiUrl(values.logo)];
 
                 if (values.useCertificate && !Validators.empty(values.certificate)) {
                     tags.push('a=' + Validators.toAsciiUrl(values.certificate));
                 }
 
-                return qualifiedName(values.selector, '_bimi.' + domain + '.') + ' ' + txtValue(tags.join('; '));
-            }
-        },
-
-        {
-            id: 'AAAA',
-            label: 'AAAA',
-            title: 'AAAA — сопоставление имени с IPv6-адресом',
-            description: 'AAAA-запись связывает имя хоста с адресом IPv6. Она нужна, если сервер доступен по IPv6, но не влияет на маршрутизацию почты напрямую.',
-            columns: 2,
-            fields: [
-                subdomainField('host', 'Имя хоста (поддомен)', 'mail'),
-                {
-                    name: 'ipv6',
-                    label: 'IPv6-адрес',
-                    type: 'text',
-                    value: '2001:db8::1',
-                    placeholder: '2001:db8::1',
-                    hint: 'Адрес в формате IPv6. Сокращение через :: допустимо, например 2001:db8::1.',
-                    rules: [{ test: Validators.ipv6, message: 'Введите корректный адрес IPv6, например 2001:db8::1' }]
-                }
-            ],
-            build: function (values, domain, record) {
-                return fqdn(values.host, domain) + ' AAAA ' + values.ipv6.trim();
+                return qualifiedName(values.selector, '_bimi.' + domain + '.') + ' ' + ttl + ' ' + txtValue(tags.join('; '));
             }
         },
 
@@ -710,7 +687,7 @@ absolute(values.target);
             id: 'TXT',
             label: 'TXT',
             title: 'TXT — произвольная текстовая запись',
-            description: 'TXT-записи используются для подтверждения доменов, проверки владения и других служебных целей. Значение подставляется в кавычки автоматически.',
+            description: 'Произвольный текст: подтверждение владения доменом и служебные строки.',
             columns: 2,
             fields: [
                 subdomainField('name', 'Имя записи', '@', 'Поддомен относительно вашего домена или @ для записи в его корне.', '@'),
@@ -731,8 +708,8 @@ absolute(values.target);
                     }]
                 }
             ],
-            build: function (values, domain, record) {
-                return txtRecord(fqdn(values.name, domain), values.value.trim());
+            build: function (values, domain, record, ttl) {
+                return txtRecord(fqdn(values.name, domain), values.value.trim(), ttl);
             }
         }
     ];

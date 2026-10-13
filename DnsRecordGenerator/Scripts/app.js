@@ -398,15 +398,16 @@
 
         const ready = isValid && !recordError;
 
-        const output = ready ? record.build(values, state.domain, record) : '';
+        // Скрытый ключ прячет и итоговую DKIM-запись: в ней публичный ключ.
+        // Состояние, а не порядок нажатий, определяет вид — поэтому работает всегда.
+        const masked = ready && !!record.keyGenerator && !!values.keyMasked;
+        const output = !ready ? '' : (masked ? KEY_MASKED_OUTPUT : record.build(values, state.domain, record, state.ttl));
         if (elements.output.value !== output) {
             elements.output.value = output;
         }
 
-        paintExtraOutputs(record, values, ready);
-
-        if (elements.copyButton.disabled === ready) {
-            elements.copyButton.disabled = !ready;
+        if (elements.copyButton.disabled === (ready && !masked)) {
+            elements.copyButton.disabled = !(ready && !masked);
         }
 
         if (recordError) {
@@ -559,6 +560,7 @@
 
     const KEY_VISIBLE_MS = 60000;
     const KEY_MASKED_TEXT = '•••••••••• (ключ скрыт — нажмите «Показать ключ»)';
+    const KEY_MASKED_OUTPUT = '•••••••••• (запись скрыта — нажмите «Показать ключ»)';
     let keyHideTimer = null;
 
     function clearKeyHideTimer() {
@@ -588,11 +590,14 @@
 
         function maskKey() {
             clearKeyHideTimer();
+            values.keyMasked = true;
             privateKeyField.value = KEY_MASKED_TEXT;
             hideButton.textContent = 'Показать ключ';
+            update();
         }
 
         function showKey() {
+            values.keyMasked = false;
             privateKeyField.value = values.privateKey;
             hideButton.textContent = 'Скрыть ключ';
             clearKeyHideTimer();
@@ -603,11 +608,13 @@
                     paintMessage(feedback, 'Ключ автоматически скрыт. Он сохранён и доступен для скачивания.', '');
                 }
             }, KEY_VISIBLE_MS);
+            update();
         }
 
 
         if (values.privateKey) {
-            maskKey();
+            privateKeyField.value = values.keyMasked ? KEY_MASKED_TEXT : values.privateKey;
+            hideButton.textContent = values.keyMasked ? 'Показать ключ' : 'Скрыть ключ';
             syncKeyButtons();
         }
 
@@ -672,6 +679,11 @@
 
         elements.resetButton.addEventListener('click', resetRecord);
 
+        elements.ttl.addEventListener('change', function () {
+            DnsState.setTtl(state, elements.ttl.value);
+            update();
+        });
+
         elements.copyButton.addEventListener('click', function () {
             copyText(elements.output, elements.feedback);
         });
@@ -682,6 +694,7 @@
             domain: 'domain',
             domainField: 'domain-field',
             domainError: 'domain-error',
+            ttl: 'ttl',
             tabs: 'tabs',
             recordTitle: 'record-title',
             recordError: 'record-error',

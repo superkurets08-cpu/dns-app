@@ -93,10 +93,10 @@ async function run(browser, errors, results, check) {
     check('Страница загружается', (await page.title()).length > 0, await page.title());
     check('CSS загружен', await page.evaluate(() =>
         getComputedStyle(document.body).fontFamily.toLowerCase().includes('montserrat')));
-    check('12 вкладок отрисованы', (await page.locator('.tab').count()) === 12);
+    check('11 вкладок отрисованы', (await page.locator('.tab').count()) === 11);
 
     // ---------- 2. Все 12 типов записей ----------
-    const tabs = ['MX', 'A', 'SPF', 'DKIM', 'DMARC', 'MTA-STS', 'TLS-RPT', 'SRV', 'CNAME', 'BIMI', 'AAAA', 'TXT'];
+    const tabs = ['MX', 'A', 'SPF', 'DKIM', 'DMARC', 'MTA-STS', 'TLS-RPT', 'SRV', 'CNAME', 'BIMI', 'TXT'];
     for (const t of tabs) {
         await page.locator('#tab-' + t).click();
         await page.waitForTimeout(120);
@@ -264,6 +264,15 @@ async function run(browser, errors, results, check) {
     await page.waitForTimeout(150);
     check('Скачивание доступно при скрытом ключе', !(await page.locator('#download-key').isDisabled()));
     check('Копирование доступно при скрытом ключе', !(await page.locator('#copy-key').isDisabled()));
+
+    // Пункт 3: скрытый ключ прячет и итоговую запись, независимо от порядка нажатий
+    const maskedOut = await page.locator('#output').inputValue();
+    check('При скрытом ключе запись тоже скрыта',
+        maskedOut.indexOf(pub.slice(0, 40)) === -1 && maskedOut.length > 0,
+        'запись: ' + maskedOut.substring(0, 80));
+    check('Копирование записи заблокировано при скрытом ключе',
+        await page.locator('#copy-button').isDisabled());
+
     await page.locator('#hide-key').click();
     await page.waitForTimeout(150);
     const dkimOut = await page.locator('#output').inputValue();
@@ -281,7 +290,7 @@ async function run(browser, errors, results, check) {
     await page.locator('#tab-MX').press('ArrowRight');
     await page.waitForTimeout(150);
     const sel = (await page.locator('.tab[aria-selected="true"]').textContent()).trim();
-    check('Стрелка вправо переключает вкладку', sel === 'A', sel);
+    check('Стрелка вправо переключает вкладку', sel === 'A/AAAA', sel);
 
     await page.keyboard.press('Tab');
     check('Tab переводит фокус', await page.evaluate(() => document.activeElement !== document.body));
@@ -314,6 +323,39 @@ async function run(browser, errors, results, check) {
             parseFloat(getComputedStyle(document.querySelector('.page-title')).fontSize));
         check('Заголовок масштабируется на ' + s.name, fontSize > 12, fontSize + 'px');
     }
+
+    // ---------- 11c. TTL: общий переключатель на странице ----------
+    await page.locator('#tab-MX').click();
+    await page.waitForTimeout(150);
+    check('TTL по умолчанию 3600',
+        (await page.locator('#output').inputValue()).includes('3600'),
+        await page.locator('#output').inputValue());
+
+    await page.locator('#ttl').selectOption('300');
+    await page.waitForTimeout(200);
+    const mxShort = await page.locator('#output').inputValue();
+    check('TTL меняется и попадает в запись', mxShort.includes('300'), mxShort);
+    check('MX-формат: @ TTL MX приоритет хост',
+        /^@ 300 MX \d+ \S+\.$/.test(mxShort.trim()), mxShort);
+
+    await page.locator('#tab-DMARC').click();
+    await page.waitForTimeout(150);
+    check('TTL применяется к другим типам',
+        (await page.locator('#output').inputValue()).includes(' 300 TXT '),
+        await page.locator('#output').inputValue());
+
+    await page.locator('#tab-A').click();
+    await page.locator('#f-includeIpv6').check();
+    await page.waitForTimeout(200);
+    const aOut = await page.locator('#output').inputValue();
+    const aLines = aOut.split('\n');
+    check('A/AAAA: обе строки с одним TTL',
+        aLines.length === 2 && aLines.every(l => l.includes(' 300 A')),
+        aOut);
+
+    await page.locator('#ttl').selectOption('3600');
+    await page.locator('#reset-button').click();
+    await page.waitForTimeout(150);
 
     // ---------- 11b. Пределы ввода работают в реальном браузере ----------
     await page.locator('#tab-TXT').click();

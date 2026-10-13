@@ -5,393 +5,91 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="Онлайн-конструктор DNS-записей для настройки почтового домена: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, SRV, CNAME, BIMI, A, AAAA и произвольная TXT. Все вычисления выполняются в браузере.">
+    <meta name="theme-color" content="#f3f5f9">
+    @* CSP через <meta>. Директива frame-ancestors в <meta> игнорируется браузером,
+       её нужно отдавать HTTP-заголовком на уровне сервера/IIS. *@
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'">
     <title>Конструктор DNS-записей</title>
-
-    <style>
-        :root {
-            --primary-blue: #0056b3;
-            --primary-blue-hover: #004085;
-            --primary-red: #d9534f;
-            --bg-page: #f4f6f9;
-            --bg-card: #ffffff;
-            --bg-block: #f8f9fa;
-            --border-color: #e0e0e0;
-            --text-main: #333333;
-            --text-muted: #666666;
-            --success-color: #28a745;
-            --error-color: #dc3545;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-page);
-            color: var(--text-main);
-            padding: 30px 15px;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 980px;
-        }
-
-        header {
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-            header h1 {
-                color: var(--primary-blue);
-                font-size: 32px;
-                margin-bottom: 8px;
-                font-weight: 700;
-            }
-
-            header p {
-                color: var(--text-muted);
-                font-size: 16px;
-            }
-
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-        }
-
-        .field-group {
-            margin-bottom: 18px;
-        }
-
-            .field-group:last-child {
-                margin-bottom: 0;
-            }
-
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 15px;
-            color: var(--text-main);
-        }
-
-        input[type="text"],
-        input[type="number"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 15px;
-            transition: all 0.2s ease;
-        }
-
-            input:focus,
-            select:focus,
-            textarea:focus {
-                outline: none;
-                border-color: var(--primary-blue);
-                box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.15);
-            }
-
-        .input-error {
-            border-color: var(--error-color) !important;
-            box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.15) !important;
-        }
-
-        .error-message {
-            color: var(--error-color);
-            font-size: 13px;
-            margin-top: 6px;
-            display: none;
-        }
-
-        .field-hint {
-            color: var(--text-muted);
-            font-size: 12px;
-            margin-top: 6px;
-            font-style: italic;
-        }
-
-        .tabs-nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 28px;
-            padding: 4px;
-            background: var(--bg-block);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-        }
-
-        .tab-btn {
-            background: #e9ecef;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-main);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-            .tab-btn:hover {
-                background: #dee2e6;
-            }
-
-            .tab-btn.active {
-                background: var(--primary-blue);
-                color: #ffffff;
-                box-shadow: 0 2px 6px rgba(0, 86, 179, 0.2);
-            }
-
-        .btn-row {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary {
-            background-color: var(--primary-blue);
-            color: white;
-        }
-
-            .btn-primary:hover {
-                background-color: var(--primary-blue-hover);
-                transform: translateY(-1px);
-            }
-
-            .btn-primary:active {
-                transform: translateY(0);
-            }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-
-            .btn-secondary:hover {
-                background-color: #5a6268;
-            }
-
-        .result-box {
-            position: relative;
-        }
-
-        textarea.result-output {
-            font-family: "Courier New", Courier, monospace;
-            font-size: 15px;
-            height: 110px;
-            resize: vertical;
-            background-color: #f8f9fa;
-            color: #212529;
-            font-weight: 600;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 14px;
-        }
-
-        .copy-toast {
-            display: none;
-            color: var(--success-color);
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 8px;
-            animation: popIn 0.3s ease;
-        }
-
-        .description-box {
-            font-size: 14px;
-            color: var(--text-muted);
-            line-height: 1.6;
-            background: var(--bg-block);
-            padding: 16px 20px;
-            border-radius: 10px;
-            border-left: 5px solid var(--primary-blue);
-            margin-top: 20px;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 18px;
-        }
-
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 18px;
-        }
-
-        @@media (max-width: 600px) {
-            .grid-2,
-            .grid-3 {
-                grid-template-columns: 1fr;
-            }
-
-            header h1 {
-                font-size: 26px;
-            }
-
-            .tabs-nav {
-                gap: 6px;
-                padding: 3px;
-            }
-
-            .tab-btn {
-                padding: 10px 16px;
-                font-size: 13px;
-            }
-
-            .card {
-                padding: 20px;
-            }
-        }
-
-        input[type="checkbox"] {
-            width: auto;
-            cursor: pointer;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-
-        a {
-            color: var(--primary-blue);
-            text-decoration: none;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-            a:hover {
-                color: var(--primary-blue-hover);
-                text-decoration: underline;
-            }
-
-        select {
-            cursor: pointer;
-            background-color: white;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            padding-right: 38px;
-        }
-
-            input:disabled,
-            select:disabled,
-            textarea:disabled,
-            button:disabled {
-                background-color: #e9ecef;
-                cursor: not-allowed;
-                opacity: 0.7;
-            }
-
-        #gen-dkim-btn {
-            width: 100%;
-        }
-
-        ::placeholder {
-            color: #adb5bd;
-            opacity: 1;
-        }
-
-        #v6-container,
-        #bimi-cert-container {
-            transition: all 0.3s ease;
-        }
-
-        @@keyframes popIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+    <link rel="icon" href="~/favicon.ico">
+    <link rel="stylesheet" href="~/Content/css/site.css">
 </head>
 <body>
-
     <div class="container">
-        <header>
-            <h1>Конструктор DNS-записей</h1>
-            <p>Онлайн-генератор DNS-записей для настройки почтовой инфраструктуры</p>
-        </header>
+        <h1 class="page-title">Конструктор DNS-записей — всё для почтового домена</h1>
+        <p class="page-lead">
+            Соберите готовую запись для панели управления доменом: укажите домен один раз, выберите тип записи,
+            задайте параметры — и скопируйте результат. Генерация ключей и сборка записей выполняются
+            прямо в браузере, данные никуда не отправляются.
+        </p>
 
-        <div class="card">
-            <div class="field-group">
-                <label for="global-domain">Ваш домен:</label>
-                <input type="text"
-                       id="global-domain"
-                       value="example.com"
-                       placeholder="например, example.com"
-                       maxlength="255">
-                <div class="field-hint">Используется во всех генерируемых записях</div>
-                <div class="error-message" id="domain-error">Введите корректный домен</div>
+        <section class="block">
+            <div class="field" id="domain-field">
+                <label class="field__label" for="domain">
+                    Ваш домен <span class="field__required" aria-hidden="true">*</span>
+                </label>
+                <input type="text" id="domain" value="example.com" maxlength="253"
+                       placeholder="example.com" autocomplete="off" spellcheck="false"
+                       aria-describedby="domain-hint domain-error">
+                <p class="field__hint" id="domain-hint">
+                    Домен, для которого создаются записи. Используется во всех генерируемых записях
+                    как базовая часть имени. Поля «Имя» в записях ниже задают только поддомен
+                    (например, <code>mail</code> для полного имени <code>mail.example.com</code>).
+                    Кириллический домен преобразуется в punycode автоматически.
+                </p>
+                <p class="field__error" id="domain-error" hidden></p>
             </div>
-        </div>
+        </section>
 
-        <div class="tabs-nav" id="tabs-container">
-            <button class="tab-btn active" data-type="MX">MX</button>
-            <button class="tab-btn" data-type="A">A / AAAA</button>
-            <button class="tab-btn" data-type="SPF">SPF</button>
-            <button class="tab-btn" data-type="DKIM">DKIM</button>
-            <button class="tab-btn" data-type="DMARC">DMARC</button>
-            <button class="tab-btn" data-type="MTA-STS">MTA-STS</button>
-            <button class="tab-btn" data-type="TLS-RPT">TLS-RPT</button>
-            <button class="tab-btn" data-type="SRV">SRV</button>
-            <button class="tab-btn" data-type="CNAME">CNAME</button>
-            <button class="tab-btn" data-type="BIMI">BIMI</button>
-            <button class="tab-btn" data-type="AAAA">AAAA</button>
-            <button class="tab-btn" data-type="TXT">Произвольная TXT</button>
-        </div>
+        <div class="tabs" id="tabs" role="tablist" aria-label="Тип DNS-записи"></div>
 
-        <div class="card">
-            <div id="dynamic-params-container"></div>
-            <div class="btn-row">
-                <button type="button" class="btn btn-secondary" id="reset-btn">Очистить / Сбросить</button>
+        <section class="block">
+            <h2 class="block__title" id="record-title"></h2>
+            <p class="field__error" id="record-error" hidden></p>
+            <div class="grid grid--2" id="params"></div>
+            <div id="key-panel-host"></div>
+            <div class="actions">
+                <button type="button" class="btn btn--outline" id="reset-button">Очистить</button>
             </div>
-        </div>
+        </section>
 
-        <div class="card">
-            <div class="field-group result-box">
-                <label for="result-output">Сформированная DNS-запись:</label>
-                <textarea id="result-output"
-                          class="result-output"
-                          readonly
-                          placeholder="Здесь появится готовая DNS-запись..."></textarea>
-                <div class="btn-row">
-                    <button type="button" class="btn btn-primary" id="copy-btn">Копировать в буфер</button>
+        <section class="block">
+            <h2 class="block__title">Готовая запись</h2>
+            <p class="block__hint">
+                Формат «имя — тип — значение». Вставьте строку в панель управления доменом: для TXT- и
+                DMARC-записей кавычки нужно переносить вместе со значением.
+            </p>
+            <div class="result">
+                <textarea class="result__output" id="output" readonly rows="4"></textarea>
+                <div class="actions">
+                    <button type="button" class="btn" id="copy-button">Копировать</button>
+                    <span class="feedback" id="output-feedback"></span>
                 </div>
-                <div class="copy-toast" id="copy-toast">✓ Запись успешно скопирована!</div>
             </div>
+            <div class="description" id="record-description"></div>
+        </section>
 
-            <div class="description-box" id="record-description">
-                Выберите тип DNS-записи для начала работы
-            </div>
-        </div>
+        <div id="extra-outputs"></div>
+
+        <p class="page-note">
+            Все записи формируются локально в вашем браузере. Проверяйте результат в панели управления
+            доменом перед применением.
+        </p>
     </div>
 
-    <script src="~/Scripts/dns-app.js"></script>
+    <noscript>
+        <div class="container">
+            <p class="block__hint">
+                Для генерации DNS-записей нужен включённый JavaScript: записи собираются в браузере.
+            </p>
+        </div>
+    </noscript>
+
+    <script src="~/Scripts/validators.js"></script>
+    <script src="~/Scripts/records.js"></script>
+    <script src="~/Scripts/state.js"></script>
+    <script src="~/Scripts/app.js"></script>
 </body>
 </html>

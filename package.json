@@ -1,0 +1,17 @@
+{
+  "name": "dns-record-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Конструктор DNS-записей для почтового домена: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, SRV, CNAME, BIMI, A, AAAA и произвольная TXT",
+  "scripts": {
+    "test": "node Tests/run.js",
+    "test:browser": "node Tests/browser-audit.js",
+    "test:all": "node Tests/run.js && node Tests/browser-audit.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  },
+  "dependencies": {
+    "playwright": "^1.64.0"
+  }
+}

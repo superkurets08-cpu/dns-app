@@ -1,3 +1,22 @@
-bin/ 
+bin/
 obj/
 .vs/
+node_modules/
+packages/
+*.user
+nuget.exe
+
+# Справочные материалы в корне — не часть проекта
+*.png
+Правки.txt
+Шрифты.txt
+Style.txt
+Стили*.txt
+иконки/
+*_files/
+
+# Корневые .html — черновики и сохранённые страницы, не часть проекта
+/*.html
+
+# Статическая сборка Index.cshtml для браузерного аудита (создаётся скриптом)
+DnsRecordGenerator/Views/Home/Index.html

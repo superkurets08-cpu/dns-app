@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  js-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Install Playwright browser
+        run: npx playwright install chromium --with-deps
+
+      - run: npm run test:browser
+
+  dotnet-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore DnsRecordGenerator.slnx
+
+      # MvcBuildViews=true заставляет компилировать представления Razor
+      # и ловить ошибки в .cshtml на этапе сборки, а не в момент запроса.
+      - name: Build (Release, views compiled)
+        run: msbuild DnsRecordGenerator.slnx -t:Rebuild -p:Configuration=Release -p:MvcBuildViews=true

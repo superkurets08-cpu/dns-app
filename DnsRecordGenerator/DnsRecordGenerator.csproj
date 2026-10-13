@@ -109,6 +109,7 @@
     <Content Include="Global.asax" />
     <Content Include="Scripts\app.js" />
     <Content Include="Scripts\records.js" />
+    <Content Include="Scripts\state.js" />
     <Content Include="Scripts\validators.js" />
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Shared\Error.cshtml" />

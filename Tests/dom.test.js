@@ -1,4 +1,4 @@
-const { suite, test, eq, ok } = require('./runner');
+const { suite, test, skip, eq, ok } = require('./runner');
 const { loadDom, VIEW } = require('./dom-harness');
 
 const PAYLOADS = [
@@ -24,10 +24,7 @@ test('подключены только собственные скрипты и
 });
 
 if (!dom) {
-    test('DOM-тесты пропущены: не установлен jsdom', () => {
-        ok(true, '');
-    });
-    console.log('\n  примечание: для DOM-тестов выполните npm install jsdom в корне проекта');
+    skip('DOM-тесты интерфейса', 'не установлен jsdom — выполните npm install');
 } else {
     const { window } = dom;
     const doc = window.document;
@@ -60,14 +57,6 @@ if (!dom) {
         const box = field('DKIM', 'publicKey');
         box.value = DKIM_KEY;
         fire(box);
-    };
-
-    const withDom = fn => {
-        const result = fn();
-        if (!dom) {
-            throw new Error('jsdom недоступен');
-        }
-        return result;
     };
 
     test('отрисованы все 11 вкладок типов записей', () => {
@@ -377,18 +366,33 @@ if (!dom) {
         ttl.dispatchEvent(new window.Event('change'));
     });
 
-    test('кнопка сброса называется «Сбросить»', () => {
-        eq(doc.getElementById('reset-button').textContent.trim(), 'Сбросить');
+    test('кнопка сброса присутствует и доступна', () => {
+        const button = doc.getElementById('reset-button');
+        ok(button, 'нет кнопки сброса');
+        eq(button.disabled, false, 'кнопка сброса заблокирована');
+        eq(button.tagName, 'BUTTON', 'сброс должен быть кнопкой, а не ссылкой');
     });
 
     test('описание типа показывается под заголовком, а не под результатом', () => {
         const title = doc.querySelector('#panel-MX .dnsr-block__title');
         const description = doc.querySelector('#panel-MX .dnsr-description');
+        const output = doc.getElementById('output');
         ok(description, 'нет блока описания');
-        const titleTop = title.getBoundingClientRect ? 0 : 0;
-        // В разметке описание идёт раньше результата
+        ok(output, 'нет блока результата');
+
+        // Порядок в дереве документа, а не поиск подстроки в HTML:
+        // отсутствие идентификатора давало indexOf === -1, и сравнение
+        // -1 < N проходило всегда.
+        const FOLLOWING = window.Node.DOCUMENT_POSITION_FOLLOWING;
+        const position = title.compareDocumentPosition(description);
+        ok((position & FOLLOWING) !== 0,
+            'описание должно идти после заголовка типа');
+        const afterTitle = description.compareDocumentPosition(output);
+        ok((afterTitle & FOLLOWING) !== 0,
+            'описание должно находиться раньше блока результата');
+
         const html = doc.body.innerHTML;
-        ok(html.indexOf('record-description') < html.indexOf('id="output"'),
+        ok(html.indexOf('dnsr-description') < html.indexOf('id="output"'),
             'описание должно быть над блоком результата');
     });
 
@@ -486,5 +490,4 @@ if (!dom) {
             'нет предупреждения о тайне ключа');
     });
 
-    void withDom;
 }

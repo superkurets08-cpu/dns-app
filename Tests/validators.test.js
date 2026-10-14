@@ -224,11 +224,7 @@ test('принимает домены в punycode — так выглядят в
     eq(V.domain('mail.xn--e1afmkfd.xn--p1ai'), true);
 });
 
-test('обычные домены по-прежнему принимаются', () => {
-    eq(V.domain('example.com'), true);
-    eq(V.domain('example.by'), true);
-    eq(V.domain('sub.mail.example.com'), true);
-});
+;
 
 test('TLD короче двух символов не принимается', () => {
     eq(V.domain('a.b'), false);

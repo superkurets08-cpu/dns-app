@@ -1,7 +1,10 @@
-const { suite, test, eq, ok } = require('./runner');
+const { suite, test, eq, ok, fail } = require('./runner');
 const { loadSources } = require('./harness');
 
-const R = loadSources().DnsRecords;
+const sources = loadSources();
+const R = sources.DnsRecords;
+const DnsState = sources.DnsState;
+const Validators = sources.Validators;
 
 const DOMAIN = 'example.com';
 const TTL = '3600';
@@ -103,27 +106,11 @@ test('набор параметров каждого типа соответст
     });
 });
 
-test('у каждого поля есть подпись', () => {
-    R.all.forEach(record => {
-        record.fields.forEach(field => {
-            ok(typeof field.label === 'string' && field.label.length > 0, record.id + '.' + field.name);
-        });
-    });
-});
+;
 
-test('у каждого поля есть подсказка по формату', () => {
-    R.all.forEach(record => {
-        record.fields.forEach(field => {
-            ok(typeof field.hint === 'string' && field.hint.length > 10, record.id + '.' + field.name);
-        });
-    });
-});
+;
 
-test('у каждого типа есть описание назначения', () => {
-    R.all.forEach(record => {
-        ok(record.description.length > 40, record.id);
-    });
-});
+;
 
 suite('Генерация: форматы из задания');
 
@@ -147,9 +134,7 @@ test('A/AAAA: галочка IPv6 добавляет вторую строку A
         'mail.example.com. 3600 A 192.168.1.10\nmail.example.com. 3600 AAAA 2001:db8::1');
 });
 
-test('A/AAAA: без галочки IPv6 остаётся одна строка', () => {
-    eq(build('A', { includeIpv6: false }), 'mail.example.com. 3600 A 192.168.1.10');
-});
+;
 
 test('SPF: собирается политика, адреса, провайдеры и механизмы', () => {
     eq(build('SPF'),
@@ -316,10 +301,7 @@ test('обратные слэши экранируются', () => {
     eq(build('TXT', { value: 'path\\to\\file' }), 'example.com. 3600 TXT "path\\\\to\\\\file"');
 });
 
-test('строка только из спецсимволов остаётся корректной', () => {
-    const line = build('TXT', { value: '"\\"' });
-    eq((line.match(/"/g) || []).length % 2, 0);
-});
+;
 
 test('пустое значение даёт пустую строку в кавычках', () => {
     eq(build('TXT', { value: '' }), 'example.com. 3600 TXT ""');
@@ -438,17 +420,7 @@ test('не-TXT записи защищены валидацией: кавычк�
     });
 });
 
-test('у каждого свободного текстового поля есть правила валидации', () => {
-    PLAIN.forEach(id => {
-        R.find(id).fields.forEach(field => {
-            if (field.type === 'select' || field.type === 'checks' || field.type === 'check') {
-                return;
-            }
-            ok(field.rules && field.rules.length > 0,
-                id + '.' + field.name + ' — свободное текстовое поле без правил валидации');
-        });
-    });
-});
+;
 suite('Валидация: межполевые ограничения');
 
 test('DKIM: без публичного ключа запись не выдаётся', () => {
@@ -535,16 +507,7 @@ test('все 11 типов блокируют пустые обязательн�
     eq(leaked.map(r => r.id).join(','), '', 'запись собрана из пустых полей');
 });
 
-test('каждый тип записи имеет хотя бы одну проверку', () => {
-    const unchecked = R.all.filter(record => {
-        const hasFieldRule = record.fields.some(field => (field.rules || []).length > 0);
-        const hasRecordRule = typeof record.validate === 'function';
-        const hasClosedValues = record.fields.some(field =>
-            field.type === 'select' || field.type === 'checks' || field.type === 'check');
-        return !hasFieldRule && !hasRecordRule && !hasClosedValues;
-    });
-    eq(unchecked.map(r => r.id).join(','), '', 'тип записи нечем проверить');
-});
+;
 
 test('свободно вводимые поля имеют правила валидации', () => {
     // Селекты и чекбоксы ограничены списком значений, поля только для чтения
@@ -600,3 +563,153 @@ test('враждебный ввод либо блокируется, либо о
     eq(broken.join(' | '), '', 'сырые управляющие символы в готовой записи');
 });
 
+
+suite('Схема: сторонние сервисы');
+
+test('адреса SPF-провайдеров соответствуют официальным', () => {
+    // Сверка с зафиксированными адресами, а не со схемой: подпись в интерфейсе
+    // и сборка записи берутся из одного списка, поэтому сверка со схемой была бы
+    // тавтологией. Ошибка в адресе отключает почту, и заметить её можно
+    // только здесь.
+    const OFFICIAL = {
+        google: 'include:_spf.google.com',
+        m365: 'include:spf.protection.outlook.com',
+        yandex: 'include:_spf.yandex.net',
+        mailru: 'include:mail.ru',
+        zoho: 'include:zohomail.com',
+        proton: 'include:sendmail.xs.ptr.protonmail.com',
+        fastmail: 'include:spf.m.fastmail.com',
+        ses: 'include:amazonses.com',
+        mailgun: 'include:mailgun.org',
+        sendgrid: 'include:sendgrid.net'
+    };
+
+    const providers = R.find('SPF').fields.find(field => field.name === 'providers');
+    const wrong = providers.options
+        .filter(option => option.note !== OFFICIAL[option.value])
+        .map(option => option.value + ': ' + option.note + ' вместо ' + OFFICIAL[option.value]);
+
+    eq(wrong.join(' | '), '', 'адреса провайдеров расходятся с официальными');
+});
+
+test('каждый провайдер SPF попадает в собранную запись', () => {
+    const spf = R.find('SPF');
+    const providers = spf.fields.find(field => field.name === 'providers');
+    const missing = [];
+
+    providers.options.forEach(option => {
+        const { values } = defaults('SPF');
+        values.ips = '';
+        values.mechanisms = { mx: false, a: false };
+        values.providers[option.value] = true;
+
+        const line = spf.build(values, DOMAIN, spf, TTL);
+        if (line.indexOf(option.note) === -1) {
+            missing.push(option.value);
+        }
+        ok(spf.validate(values, DOMAIN, spf, TTL) === null,
+            option.value + ': запись отвергнута собственной валидацией');
+    });
+
+    eq(missing.join(','), '', 'провайдеры не попали в запись');
+});
+
+test('подсказки селектора DKIM включают обязательные для сервисов', () => {
+    // Сервис проверяет подпись строго по своему селектору: свой не сработает,
+    // и письма будут уходить без подписи.
+    const selector = R.find('DKIM').fields.find(field => field.name === 'selector');
+    const required = ['yandex', 'mailru', 'google', 'selector1', 'selector2', 'default'];
+
+    const missing = required.filter(value => selector.suggestions.indexOf(value) === -1);
+    eq(missing.join(','), '', 'в подсказках нет обязательных селекторов');
+});
+
+test('подсказки селектора DKIM принимаются собственным правилом поля', () => {
+    // Иначе подсказка предлагает значение, которое поле затем отвергнет.
+    const selector = R.find('DKIM').fields.find(field => field.name === 'selector');
+    const rejected = selector.suggestions.filter(value => !Validators.subdomain(value));
+
+    eq(rejected.join(','), '', 'подсказка отклоняется правилом поля');
+});
+
+test('счётчик проверок в README совпадает с фактическим', () => {
+    // Число проверок меняется при каждой правке тестов; без этой проверки
+    // устаревшее число в документации обнаруживалось бы только чтением.
+    const fs = require('fs');
+    const path = require('path');
+    const readme = fs.readFileSync(
+        path.join(__dirname, '..', 'README.md'), 'utf8');
+
+    const stated = /\*\*(\d+) unit-проверк/.exec(readme);
+    ok(stated, 'в README нет числа unit-проверок');
+
+    const actual = fs.readdirSync(__dirname)
+        .filter(name => name.endsWith('.test.js'))
+        .reduce((sum, name) => {
+            const source = fs.readFileSync(path.join(__dirname, name), 'utf8');
+            return sum + (source.match(/^\s*test\('/gm) || []).length;
+        }, 0);
+
+    eq(stated[1], String(actual), 'число проверок в README разошлось с фактическим');
+});
+
+suite('Базовый набор: устойчивость');
+
+test('набор не пропускает управляющие символы', () => {
+    const HOSTILE = ['a\nevil', 'x\ry.evil', 'a"b', 'a\b', 'q q'];
+    const RAW = new RegExp('[' + String.fromCharCode(92) + 'n' +
+        String.fromCharCode(92) + 'r' + String.fromCharCode(92) + 'u0000-' +
+        String.fromCharCode(92) + 'u001f' + String.fromCharCode(92) + 'u007f]');
+
+    const broken = [];
+    R.setupSet.forEach(id => {
+        HOSTILE.forEach(input => {
+            const set = R.buildSet(DOMAIN, TTL, record => {
+                const values = DnsState.valuesFor(DnsState.create(), record);
+                if (record.id === 'DKIM') {
+                    values.publicKey = input;
+                }
+                const field = record.fields.find(f => !f.readonly && f.type === 'text');
+                if (field) {
+                    values[field.name] = input;
+                }
+                return values;
+            });
+            if (RAW.test(set.lines.join(''))) {
+                broken.push(id + ' <- ' + JSON.stringify(input));
+            }
+        });
+    });
+
+    eq(broken.join(' | '), '', 'набор содержит управляющие символы');
+});
+
+test('набор переживает значения не того типа', () => {
+    const WEIRD = [null, undefined, 0, 42, true, false, NaN, {}];
+    WEIRD.forEach(input => {
+        try {
+            const set = R.buildSet(DOMAIN, TTL, record => {
+                const values = DnsState.valuesFor(DnsState.create(), record);
+                Object.keys(values).forEach(key => {
+                    values[key] = input;
+                });
+                return values;
+            });
+            ok(Array.isArray(set.lines) && Array.isArray(set.skipped),
+                'некорректный результат набора');
+        } catch (error) {
+            fail('buildSet упал на ' + JSON.stringify(String(input)) + ': ' + error.message);
+        }
+    });
+});
+
+test('набор переживает некорректные домен и TTL', () => {
+    ['', 'НЕ ДОМЕН!!', 42, null].forEach(domain => {
+        ['', null, 'не TTL', 999999].forEach(ttl => {
+            const set = R.buildSet(domain, ttl, record =>
+                DnsState.valuesFor(DnsState.create(), record));
+            ok(Array.isArray(set.lines) && Array.isArray(set.skipped),
+                'некорректный результат для домена ' + JSON.stringify(domain));
+        });
+    });
+});

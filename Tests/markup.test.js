@@ -1,4 +1,4 @@
-const { suite, test, eq, ok } = require('./runner');
+const { suite, test, skip, eq, ok } = require('./runner');
 const fs = require('fs');
 const path = require('path');
 const { loadSources } = require('./harness');
@@ -24,7 +24,7 @@ suite('Разметка: соответствует схеме записей');
 const dom = loadDom();
 
 if (!dom) {
-    test('DOM-тесты пропущены: не установлен jsdom', () => ok(true, ''));
+    skip('DOM-проверки разметки', 'не установлен jsdom — выполните npm install');
 } else {
     const doc = dom.window.document;
     doc.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
@@ -164,7 +164,7 @@ test('набор не содержит незаполненных записей
 
     const set = R.buildSet('example.com', '3600', values);
     eq(set.skipped.join(','), 'DKIM', 'DKIM без ключа должен быть пропущен');
-    ok(set.lines.indexOf(set.lines.find(l => l.indexOf('DKIM1') !== -1)) === -1,
+    ok(!set.lines.some(line => line.indexOf('DKIM1') !== -1),
         'запись DKIM попала в набор без ключа');
     eq(set.lines.length, R.setupSet.length - 1);
 });
@@ -185,6 +185,41 @@ test('записи набора не содержат сырых перевод�
     set.lines.forEach(line => {
         ok(!/\n/.test(line), 'строка набора содержит перевод строки: ' + JSON.stringify(line));
     });
+});
+
+suite('Разметка: блок базового набора');
+
+test('в разметке есть все элементы блока набора', () => {
+    ['build-set-button', 'setup-output', 'copy-set-button', 'setup-feedback'].forEach(id => {
+        ok(doc.getElementById(id), 'нет элемента ' + id);
+    });
+});
+
+test('кнопка сбора — настоящая кнопка, а не ссылка', () => {
+    const button = doc.getElementById('build-set-button');
+    eq(button.tagName, 'BUTTON');
+    eq(button.getAttribute('type'), 'button', 'кнопка отправит форму при клике');
+});
+
+test('поле набора доступно только для чтения', () => {
+    const output = doc.getElementById('setup-output');
+    eq(output.tagName, 'TEXTAREA');
+    ok(output.hasAttribute('readonly'), 'поле набора должно быть только для чтения');
+});
+
+test('кнопка копирования набора изначально заблокирована', () => {
+    // До сборки набора копировать нечего: блокировка не должна сниматься
+    // просто потому, что элемент отрисован статически.
+    eq(doc.getElementById('copy-set-button').disabled, true);
+});
+
+test('у блока набора есть подпись и пояснение', () => {
+    const titles = doc.querySelectorAll('.dnsr-block__title');
+    const found = Array.from(titles).some(t => t.textContent.indexOf('Базовый набор') !== -1);
+    ok(found, 'нет заголовка блока базового набора');
+
+    const hint = doc.querySelector('.dnsr-block__hint');
+    ok(hint && hint.textContent.trim().length > 40, 'нет пояснения к набору');
 });
 
 test('подсказки полей совпадают со схемой', () => {

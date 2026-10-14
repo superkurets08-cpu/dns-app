@@ -754,6 +754,46 @@ test('нет пробелов в конце строк в CSS', () => {
 
 suite('Адаптивность: блок базового набора');
 
+test('одиночные флажки занимают всю ширину сетки', () => {
+    // Подсказка под флажком переносилась на половину ширины сетки
+    // (475px при сетке 980px) и читалась рваными строками.
+    const singleCheckboxes = ['includeIpv6', 'useCertificate'];
+    const wrong = [];
+
+    singleCheckboxes.forEach(name => {
+        const match = new RegExp('class="[^"]*dnsr-field--full[^"]*"[^>]*data-field="' +
+            name + '"').test(view);
+        if (!match) {
+            wrong.push(name);
+        }
+    });
+
+    eq(wrong.join(','), '', 'флажок не растянут на всю ширину');
+});
+
+test('группам флажков ширина не нужна', () => {
+    // Провайдеры SPF и механизмы занимают место в сетке: растягивать их
+    // на всю ширину нельзя, иначе строки схлопнутся в одну колонку.
+    ['providers', 'mechanisms'].forEach(name => {
+        const stretched = new RegExp('class="[^"]*dnsr-field--full[^"]*"[^>]*data-field="' +
+            name + '"').test(view);
+        eq(stretched, false, name + ': группа флажков не должна занимать всю ширину');
+    });
+});
+
+test('служебная строка с кнопкой сброса не оформлена карточкой', () => {
+    // Карточка ради одной кнопки занимала 144px высотой при кнопке 52px.
+    const section = /<section class="([^"]*)">(\s*<div class="dnsr-actions">\s*<button[^>]*id="reset-button")/;
+    const match = section.exec(view);
+    ok(match, 'не найдена секция с кнопкой сброса');
+    ok(match[1].indexOf('dnsr-block--plain') !== -1,
+        'кнопка сброса снова оформлена тяжёлой карточкой');
+    ok(/\.dnsr-block--plain\s*\{[^}]*background-color:\s*transparent/.test(css),
+        'нет правила прозрачного фона для служебной строки');
+    ok(/\.dnsr-block--plain\s*\{[^}]*box-shadow:\s*none/.test(css),
+        'нет правила отсутствия тени для служебной строки');
+});
+
 test('поле результата отделено от кнопок над ним', () => {
     // Без верхнего отступа нижний край контейнера кнопок смыкался с рамкой
     // поля: зазор составлял 16px на десктопе и 12px на телефоне.

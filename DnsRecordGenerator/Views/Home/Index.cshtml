@@ -80,7 +80,7 @@
     <div class="dnsr-grid dnsr-grid--2" data-params="A">
         <div class="dnsr-field" data-field="host"><label class="dnsr-field__label" for="f-A-host">Имя хоста (поддомен)</label><input id="f-A-host" type="text" maxlength="253" value="mail" placeholder="mail"><p class="dnsr-field__hint">Поддомен относительно вашего домена. Оставьте поле пустым или «&#64;», чтобы запись относилась к самому домену.</p><p class="dnsr-field__error" id="e-A-host"></p><p class="dnsr-field__preview" id="p-A-host"></p></div>
         <div class="dnsr-field" data-field="ip"><label class="dnsr-field__label" for="f-A-ip">IPv4-адрес <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-A-ip" type="text" maxlength="253" value="192.168.1.10" placeholder="192.168.1.10"><p class="dnsr-field__hint">Адрес в формате IPv4, например 192.168.1.10. Принимается и публичный, и адрес внутри сети — запись попадёт в зону домена.</p><p class="dnsr-field__error" id="e-A-ip"></p></div>
-        <div class="dnsr-field " data-field="includeIpv6"><span class="dnsr-choices"><label class="dnsr-choice"><input type="checkbox" data-owner="includeIpv6" id="f-A-includeIpv6">Добавить AAAA-запись для IPv6</label></span><p class="dnsr-field__hint">Создаёт вторую строку с типом AAAA для того же имени. Снимите галочку, если сервер доступен только по IPv4.</p></div>
+        <div class="dnsr-field dnsr-field--full" data-field="includeIpv6"><span class="dnsr-choices"><label class="dnsr-choice"><input type="checkbox" data-owner="includeIpv6" id="f-A-includeIpv6">Добавить AAAA-запись для IPv6</label></span><p class="dnsr-field__hint">Создаёт вторую строку с типом AAAA для того же имени. Снимите галочку, если сервер доступен только по IPv4.</p></div>
         <div class="dnsr-field" data-field="ipv6"><label class="dnsr-field__label" for="f-A-ipv6">IPv6-адрес</label><input id="f-A-ipv6" type="text" maxlength="253" value="2001:db8::1" placeholder="2001:db8::1"><p class="dnsr-field__hint">Адрес в формате IPv6. Сокращение через :: допустимо, например 2001:db8::1.</p><p class="dnsr-field__error" id="e-A-ipv6"></p></div>
     </div>
 </section>
@@ -177,7 +177,7 @@
     <div class="dnsr-grid dnsr-grid--2" data-params="BIMI">
         <div class="dnsr-field" data-field="selector"><label class="dnsr-field__label" for="f-BIMI-selector">Селектор <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-BIMI-selector" type="text" maxlength="253" value="default" placeholder="default"><p class="dnsr-field__hint">Префикс имени записи: &lt;селектор&gt;._bimi.&lt;домен&gt;.</p><p class="dnsr-field__error" id="e-BIMI-selector"></p></div>
         <div class="dnsr-field" data-field="logo"><label class="dnsr-field__label" for="f-BIMI-logo">URL логотипа (l) <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-BIMI-logo" type="text" maxlength="253" value="https://example.com/logo.svg" placeholder="https://example.com/logo.svg"><p class="dnsr-field__hint">Прямая ссылка на SVG-файл логотипа. Нужен формат SVG Tiny Portable/Secure, PNG принимают не все почтовые клиенты.</p><p class="dnsr-field__error" id="e-BIMI-logo"></p></div>
-        <div class="dnsr-field " data-field="useCertificate"><span class="dnsr-choices"><label class="dnsr-choice"><input type="checkbox" data-owner="useCertificate" id="f-BIMI-useCertificate">Добавить VMC-сертификат</label></span><p class="dnsr-field__hint">Сертификат Verified Mark Certificate обязателен для отображения логотипа у Gmail и Яндекс.Почты. Для других клиентов поле можно не заполнять.</p></div>
+        <div class="dnsr-field dnsr-field--full" data-field="useCertificate"><span class="dnsr-choices"><label class="dnsr-choice"><input type="checkbox" data-owner="useCertificate" id="f-BIMI-useCertificate">Добавить VMC-сертификат</label></span><p class="dnsr-field__hint">Сертификат Verified Mark Certificate обязателен для отображения логотипа у Gmail и Яндекс.Почты. Для других клиентов поле можно не заполнять.</p></div>
         <div class="dnsr-field" data-field="certificate"><label class="dnsr-field__label" for="f-BIMI-certificate">URL VMC-сертификата (a)</label><input id="f-BIMI-certificate" type="text" maxlength="253" value="https://example.com/cert.pem" placeholder="https://example.com/cert.pem"><p class="dnsr-field__hint">Ссылка на PEM-файл сертификата. Если флажок выше выключен, поле не попадёт в запись.</p><p class="dnsr-field__error" id="e-BIMI-certificate"></p></div>
     </div>
 </section>
@@ -192,7 +192,7 @@
     </div>
 </section>
 
-        <section class="dnsr-block">
+        <section class="dnsr-block dnsr-block--plain">
             <div class="dnsr-actions">
                 <button type="button" class="dnsr-btn dnsr-btn--outline" id="reset-button">Сбросить</button>
             </div>

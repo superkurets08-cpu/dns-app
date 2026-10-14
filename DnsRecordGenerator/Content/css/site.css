@@ -187,6 +187,14 @@ p {
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
 }
 
+/* Служебная строка без карточки: кнопка сброса занимала целую
+   подсвеченную секцию высотой 144px ради одной кнопки. */
+.dnsr-block--plain {
+    padding: 0;
+    background-color: transparent;
+    box-shadow: none;
+}
+
 .dnsr-block__title {
     margin-bottom: var(--space-8);
     font-size: var(--fs-block);

@@ -121,6 +121,12 @@ p {
 .dnsr-tabs {
     display: flex;
     gap: var(--space-8);
+    /* Вкладки выравниваются по центру, когда помещаются целиком. На узких
+       экранах они переполняют контейнер и прокручиваются, поэтому обычный
+       center обрезал бы левый край: safe center при переполнении
+       возвращается к выравниванию влево. */
+    justify-content: center;
+    justify-content: safe center;
     margin-bottom: var(--space-24);
     border-bottom: 1px solid #dee2e6;
     overflow-x: auto;

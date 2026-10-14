@@ -112,6 +112,28 @@ test('вкладки имеют overflow-x: auto для мобильных', () 
     ok(match, '.dnsr-tabs не имеет overflow-x: auto');
 });
 
+test('вкладки выровнены по центру, когда помещаются целиком', () => {
+    // Без этого справа от последней вкладки оставалось пустое поле: блок
+    // занимал всю ширину, а сами вкладки прижимались к левому краю.
+    const rule = /\.dnsr-tabs\s*\{([^}]*)\}/.exec(css);
+    ok(rule, 'нет стилей вкладок');
+
+    ok(/justify-content:\s*center/.test(rule[1]),
+        'вкладки не выровнены по центру');
+    ok(/justify-content:\s*safe\s+center/.test(rule[1]),
+        'нет safe center: при переполнении обычный center обрезал бы левый край');
+});
+
+test('safe center объявлен после center для старых браузеров', () => {
+    const rule = /\.dnsr-tabs\s*\{([^}]*)\}/.exec(css);
+    const first = rule[1].indexOf('justify-content: center');
+    const second = rule[1].indexOf('justify-content: safe center');
+
+    ok(first !== -1 && second !== -1, 'объявления не найдены');
+    ok(first < second,
+        'safe center должен идти после center, иначе старые браузеры не получат запасной вариант');
+});
+
 test('вкладки имеют адаптивный padding через clamp()', () => {
     const match = css.match(/\.dnsr-tab\s*\{[^}]*padding:\s*clamp\(/);
     ok(match, '.dnsr-tab не использует clamp() для padding');

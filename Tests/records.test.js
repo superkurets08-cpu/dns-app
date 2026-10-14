@@ -27,6 +27,52 @@ function txtSegments(recordLine) {
     return (recordLine.split(' TXT ')[1].match(/"[^"]*"/g) || []).map(s => s.slice(1, -1));
 }
 
+// Полный путь пользователя: проверки полей, проверка записи и только затем
+// сборка. Так проверяется то, что реально попадёт в поле результата.
+function verdict(id, overrides) {
+    const { record, values } = defaults(id);
+    Object.assign(values, overrides);
+
+    let ready = true;
+    record.fields.forEach(field => {
+        if (field.type === 'check' || field.type === 'checks') {
+            return;
+        }
+        if (field.revealedBy && !values[field.revealedBy]) {
+            return;
+        }
+        if (field.value === undefined && field.name === 'keyMasked') {
+            return;
+        }
+        const value = values[field.name];
+        if (value === undefined || value === null || String(value).trim() === '') {
+            if (!field.optional) {
+                ready = false;
+            }
+            return;
+        }
+        (field.rules || []).forEach(rule => {
+            if (!rule.test(value)) {
+                ready = false;
+            }
+        });
+    });
+
+    const recordError = typeof record.validate === 'function'
+        ? record.validate(values, DOMAIN, record, TTL)
+        : null;
+
+    if (recordError) {
+        ready = false;
+    }
+
+    return {
+        ready: ready,
+        error: recordError,
+        line: ready ? record.build(values, DOMAIN, record, TTL) : ''
+    };
+}
+
 suite('Схема: состав типов записей');
 
 test('объявлено ровно 11 типов записей', () => {
@@ -403,3 +449,154 @@ test('у каждого свободного текстового поля ес�
         });
     });
 });
+suite('Валидация: межполевые ограничения');
+
+test('DKIM: без публичного ключа запись не выдаётся', () => {
+    const result = verdict('DKIM');
+    eq(result.ready, false, 'запись собрана без ключа');
+    eq(result.line, '', 'поле результата не должно наполняться');
+    ok(/p=/.test(result.error), 'в сообщении не объяснён смысл пустого p=: ' + result.error);
+});
+
+test('DKIM: пустой ключ не превращается в отзыв ключа', () => {
+    // RFC 6376: «p=» с пустым значением означает отзыв ключа, а не его
+    // отсутствие. Молчаливая выдача такой записи отключила бы подпись писем.
+    const { record, values } = defaults('DKIM');
+    const line = record.build(values, DOMAIN, record, TTL);
+    ok(/p="$/.test(line), 'build всё ещё собирает запись с пустым p=: ' + line);
+    eq(record.validate(values, DOMAIN, record, TTL) !== null, true,
+        'validate должен блокировать такую запись');
+});
+
+test('DKIM: с ключом запись собирается', () => {
+    const result = verdict('DKIM', { publicKey: 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDtest' });
+    eq(result.ready, true, 'запись с ключом должна собираться');
+    ok(result.line.indexOf('p=MIGfMA0G') !== -1, result.line);
+});
+
+test('A/AAAA: включённая галочка без адреса не остаётся без записи', () => {
+    const result = verdict('A', { includeIpv6: true, ipv6: '' });
+    eq(result.ready, false, 'AAAA молча потеряна');
+    ok(/IPv6/.test(result.error), 'сообщение не объясняет проблему: ' + result.error);
+});
+
+test('A/AAAA: с адресом выдаются обе строки', () => {
+    const result = verdict('A', { includeIpv6: true, ipv6: '2001:db8::1' });
+    eq(result.ready, true);
+    eq(result.line.split('\n').length, 2, result.line);
+    ok(result.line.indexOf(' AAAA 2001:db8::1') !== -1, result.line);
+});
+
+test('A/AAAA: без галочки пустой адрес IPv6 не мешает', () => {
+    eq(verdict('A', { includeIpv6: false, ipv6: '' }).ready, true);
+});
+
+test('CNAME: псевдоним, совпадающий с целью, отвергается', () => {
+    const result = verdict('CNAME', { alias: 'mail', target: 'mail.example.com' });
+    eq(result.ready, false, 'CNAME может указывать только на себя');
+    ok(/сам на себя/.test(result.error), result.error);
+});
+
+test('CNAME: сравнение целей не зависит от регистра', () => {
+    // DNS-имена регистронезависимы, поэтому WWW.EXAMPLE.COM и www.example.com —
+    // одно и то же имя, и цикл всё равно образуется.
+    const result = verdict('CNAME', { alias: 'www', target: 'WWW.EXAMPLE.COM' });
+    eq(result.ready, false, 'цикл не распознан из-за регистра');
+});
+
+test('CNAME: нормальная цель принимается', () => {
+    const result = verdict('CNAME', { alias: 'mail', target: 'mail.yandex.ru' });
+    eq(result.ready, true, result.error || '');
+});
+
+test('SPF: без механизмов запись не выдаётся', () => {
+    const result = verdict('SPF', { ips: '', mechanisms: {}, providers: {} });
+    eq(result.ready, false);
+    eq(result.line, '');
+});
+
+suite('Валидация: ни одна запись не собирается из мусора');
+
+test('все 11 типов блокируют пустые обязательные поля', () => {
+    // Пустое обязательное поле блокирует запись целиком: ошибкой поля
+    // или ошибкой записи. Проверяем итог через verdict — то, что реально
+    // решает, попадёт ли строка в поле результата.
+    const leaked = R.all.filter(record => {
+        const { values } = defaults(record.id);
+        record.fields.forEach(field => {
+            if (field.type === 'check' || field.type === 'checks') {
+                return;
+            }
+            values[field.name] = '';
+        });
+        const result = verdict(record.id, values);
+        return result.ready;
+    });
+    eq(leaked.map(r => r.id).join(','), '', 'запись собрана из пустых полей');
+});
+
+test('каждый тип записи имеет хотя бы одну проверку', () => {
+    const unchecked = R.all.filter(record => {
+        const hasFieldRule = record.fields.some(field => (field.rules || []).length > 0);
+        const hasRecordRule = typeof record.validate === 'function';
+        const hasClosedValues = record.fields.some(field =>
+            field.type === 'select' || field.type === 'checks' || field.type === 'check');
+        return !hasFieldRule && !hasRecordRule && !hasClosedValues;
+    });
+    eq(unchecked.map(r => r.id).join(','), '', 'тип записи нечем проверить');
+});
+
+test('свободно вводимые поля имеют правила валидации', () => {
+    // Селекты и чекбоксы ограничены списком значений, поля только для чтения
+    // заполняет сам генератор (ключ DKIM) — остальное вводится текстом
+    // и обязано проверяться правилом.
+    const unguarded = [];
+    R.all.forEach(record => {
+        record.fields.forEach(field => {
+            const isText = field.type === 'text' || field.type === 'textarea' || field.type === 'number';
+            if (isText && !field.readonly && !(field.rules || []).length) {
+                unguarded.push(record.id + '.' + field.name);
+            }
+        });
+    });
+    eq(unguarded.join(','), '', 'текстовое поле без правил валидации');
+});
+
+suite('Валидация: готовый вывод никогда не содержит сырых управляющих символов');
+
+test('враждебный ввод либо блокируется, либо обезвреживается сборкой', () => {
+    // Инвариант обороны в глубину: что бы ни попало в значения — через затвор
+    // или мимо него, — строка записи не должна разрываться переводом строки
+    // или управляющим символом. Кавычки и слэши допустимы только экранированными.
+    const HOSTILE = [
+        'a\nevil-line',
+        'x\ry.evil.com',
+        'q\u0000q',
+        'q\u007fq',
+        'q\u2028q',
+        'q\u2029q',
+        'a"b',
+        'a\\b'
+    ];
+    const RAW_CONTROL = new RegExp('[\\n\\r\\u0000-\\u001f\\u007f\\u2028\\u2029]');
+
+    const broken = [];
+    R.all.forEach(record => {
+        record.fields.forEach(field => {
+            if (field.type === 'check' || field.type === 'checks' || field.type === 'select') {
+                return;
+            }
+            HOSTILE.forEach(input => {
+                const result = verdict(record.id, { [field.name]: input });
+                if (!result.ready) {
+                    return;
+                }
+                if (RAW_CONTROL.test(result.line)) {
+                    broken.push(record.id + '.' + field.name + ' <- ' + JSON.stringify(input));
+                }
+            });
+        });
+    });
+    eq(broken.join(' | '), '', 'сырые управляющие символы в готовой записи');
+});
+

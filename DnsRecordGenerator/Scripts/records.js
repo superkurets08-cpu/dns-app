@@ -115,7 +115,8 @@ const DnsRecords = (function () {
             id: 'MX',
             label: 'MX',
             title: 'MX — приоритетный почтовый сервер',
-            description: 'Почта домена уходит на указанный сервер. Чем ниже приоритет, тем раньше сервер получит письмо.',
+            description: 'Назначение почтового сервера домена (RFC 5321). Определяет порядок пробного доставки: ' +
+                'записи с меньшим приоритетом проверяются первыми, при равенстве — по числовой случайности.',
             columns: 2,
             fields: [
                 {
@@ -141,7 +142,8 @@ const DnsRecords = (function () {
             id: 'A',
             label: 'A/AAAA',
             title: 'A/AAAA — сопоставление имени с IP-адресом',
-            description: 'A-запись связывает имя с адресом IPv4, AAAA — с адресом IPv6. Галочка ниже добавляет обе строки сразу.',
+            description: 'Сопоставление имени с адресом: A — IPv4, AAAA — IPv6 (RFC 1035). ' +
+                'Задаёт IP-адрес почтового сервера для входящих SMTP-соединений.',
             columns: 2,
             fields: [
                 subdomainField('host', 'Имя хоста (поддомен)', 'mail'),
@@ -174,6 +176,16 @@ const DnsRecords = (function () {
                     rules: [{ test: Validators.ipv6, message: 'Введите корректный адрес IPv6, например 2001:db8::1' }]
                 }
             ],
+            validate: function (values) {
+                // Галочка обещает вторую строку записи. Если адрес пуст, build
+                // молча её не выдаст, и пользователь решит, что IPv4 и IPv6
+                // настроены, хотя в зоне окажется только A.
+                if (values.includeIpv6 && Validators.empty(values.ipv6)) {
+                    return 'Укажите адрес IPv6 или снимите галочку про AAAA-запись';
+                }
+
+                return null;
+            },
             build: function (values, domain, record, ttl) {
                 const owner = fqdn(values.host, domain);
                 const lines = [owner + ' ' + ttl + ' A ' + values.ip.trim()];
@@ -190,7 +202,8 @@ const DnsRecords = (function () {
             id: 'SPF',
             label: 'SPF',
             title: 'SPF — перечень серверов, разрешённых отправлять почту',
-            description: 'Список серверов, которым разрешено отправлять письма от имени домена. Одна TXT-запись в корне.',
+            description: 'Политика авторизации отправителей (RFC 7208). Одна TXT-запись в корне домена, начинающаяся с v=spf1. ' +
+                'Задаёт перечень узлов, имеющих право отправлять почту от имени домена.',
             columns: 1,
             fields: [
                 {
@@ -245,8 +258,12 @@ const DnsRecords = (function () {
             ],
             validate: function (values) {
                 const hasIps = !Validators.empty(values.ips);
-                const hasProvider = Object.keys(values.providers).some(key => values.providers[key]);
-                const hasMechanism = Object.keys(values.mechanisms).some(key => values.mechanisms[key]);
+                // Группы чекбоксов всегда объекты, но проверка не должна ронять
+                // весь интерфейс исключением, если состояние повреждено.
+                const providers = values.providers || {};
+                const mechanisms = values.mechanisms || {};
+                const hasProvider = Object.keys(providers).some(key => providers[key]);
+                const hasMechanism = Object.keys(mechanisms).some(key => mechanisms[key]);
                 if (!hasIps && !hasProvider && !hasMechanism) {
                     return 'Укажите хотя бы один IP-адрес, провайдера или механизм';
                 }
@@ -303,7 +320,9 @@ const DnsRecords = (function () {
             id: 'DKIM',
             label: 'DKIM',
             title: 'DKIM — цифровая подпись исходящих писем',
-            description: 'Публичный ключ для проверки подписей исходящих писем. Приватный остаётся у вас и никуда не отправляется. Ключ длиннее 255 символов — вводите значение ровно так, как оно сгенерировано.',
+            description: 'Публичная половина пары ключей для проверки подписи исходящих писем (RFC 6376). ' +
+                'Приватный ключ не публикуется и не покидает браузер. Значение p= длиннее 255 байт ' +
+                'разбивается на несколько сегментов записи, которые DNS-сервер склеивает обратно.',
             columns: 2,
             keyGenerator: true,
             fields: [
@@ -341,6 +360,19 @@ const DnsRecords = (function () {
                     hint: 'Публичный ключ автоматически подставляется в запись. Он не секретный и публикуется в DNS. Ключ 2048 бит длиннее предела в 255 байт, поэтому запись разбивается на несколько сегментов — так публикуются все настоящие DKIM-записи, а DNS-сервер склеивает их обратно.'
                 }
             ],
+            validate: function (values) {
+                // Пустой «p=» по RFC 6376 означает не отсутствие ключа, а его
+                // отзыв. Молчаливая выдача такой записи отключила бы подпись
+                // писем домена, поэтому без ключа запись не собирается вовсе.
+                if (Validators.empty(values.publicKey)) {
+                    // Поле ключа заполняется только генератором, поэтому
+                    // предлагать вставку своего ключа здесь нельзя.
+                    return 'Сгенерируйте пару ключей: запись с пустым p= по RFC 6376 ' +
+                        'отзывает ключ и отключает подпись писем';
+                }
+
+                return null;
+            },
             build: function (values, domain, record, ttl) {
                 const publicKey = String(values.publicKey || '').replace(/\s+/g, '');
                 return qualifiedName(values.selector, '_domainkey.' + domain + '.') + ' ' + ttl + ' ' +
@@ -352,7 +384,9 @@ const DnsRecords = (function () {
             id: 'DMARC',
             label: 'DMARC',
             title: 'DMARC — политика для писем, не прошедших SPF и DKIM',
-            description: 'Правило для писем, не прошедших SPF и DKIM: отклонить, отправить в спам или только прислать отчёт.',
+            description: 'Политика обработки результатов проверки SPF и DKIM (RFC 7489). ' +
+                'Определяет действие получателя для почты, не прошедшей авторизацию: отклонить, ' +
+                'принять с маркировкой спама или только собрать отчёт.',
             columns: 2,
             fields: [
                 {
@@ -442,7 +476,9 @@ const DnsRecords = (function () {
             id: 'MTA-STS',
             label: 'MTA-STS',
             title: 'MTA-STS — принудительное шифрование при отправке почты',
-            description: 'Требование шифровать соединения. В DNS только версия политики, сам файл размещается на сайте домена.',
+            description: 'Принудительное шифрование SMTP-соединений (RFC 8461). ' +
+                'Запись публикует идентификатор версии политики; сама политика размещается отдельным файлом ' +
+                'на веб-сервере домена.',
             columns: 3,
             fields: [
                 {
@@ -505,7 +541,8 @@ const DnsRecords = (function () {
             id: 'TLS-RPT',
             label: 'TLS-RPT',
             title: 'TLS-RPT — отчёты о проблемах с шифрованием',
-            description: 'Адрес для отчётов о неудачных TLS-соединениях. Дополняет MTA-STS.',
+            description: 'Адрес сбора отчётов о неудачных TLS-соединениях (RFC 8460). ' +
+                'Действует совместно с MTA-STS, обеспечивая обратную связь о результатах применения политики.',
             columns: 1,
             fields: [
                 {
@@ -527,7 +564,8 @@ const DnsRecords = (function () {
             id: 'SRV',
             label: 'SRV',
             title: 'SRV — адрес и порт сервера службы',
-            description: 'Адрес, порт и приоритет службы: IMAP, SMTP, автонастройка почты.',
+            description: 'Расширенная адресация служб (RFC 2782). Задаёт приоритет, вес, порт и целевое имя узла: ' +
+                'IMAP, Submission, автонастройка почтовых клиентов.',
             columns: 3,
             fields: [
                 {
@@ -608,7 +646,9 @@ absolute(values.target);
             id: 'CNAME',
             label: 'CNAME',
             title: 'CNAME — псевдоним на другой домен',
-            description: 'Псевдоним одного имени на другое. Только на чистое имя: на нём не должно быть других записей — ни A, ни MX, ни TXT.',
+            description: 'Каноническое имя (RFC 1034, п. 3.6.2). ' +
+                'Допустимо только для чистого имени: наличие иных записей того же имени нарушает требование ' +
+                'отсутствия синонимов у одного узла.',
             columns: 2,
             fields: [
                 subdomainField('alias', 'Псевдоним (поддомен)', 'mail'),
@@ -622,6 +662,19 @@ absolute(values.target);
                     rules: [{ test: Validators.hostname, message: 'Введите корректное доменное имя, например mail.yandex.ru' }]
                 }
             ],
+            validate: function (values, domain) {
+                // CNAME на самого себя — цикл, который DNS-сервер отвергнет,
+                // а почтовый клиент будет считать имя несуществующим.
+                // Имена в DNS регистронезависимы, поэтому сравниваем в нижнем регистре.
+                const owner = fqdn(values.alias, domain).toLowerCase();
+                const target = absolute(values.target).toLowerCase();
+
+                if (target !== '' && owner === target) {
+                    return 'CNAME не может указывать сам на себя — укажите другой целевой домен';
+                }
+
+                return null;
+            },
             build: function (values, domain, record, ttl) {
                 return fqdn(values.alias, domain) + ' ' + ttl + ' CNAME ' + absolute(values.target);
             }
@@ -631,7 +684,8 @@ absolute(values.target);
             id: 'BIMI',
             label: 'BIMI',
             title: 'BIMI — логотип в почтовых ящиках получателей',
-            description: 'Ссылка на логотип, который почта показывает рядом с письмами, прошедшими DMARC.',
+            description: 'Брендирование сообщений (RFC 6376-bis). Ссылка на SVG-логотип, отображаемый получателем ' +
+                'для почты, прошедшей проверку DMARC. Требует действующей политики DMARC.',
             columns: 2,
             fields: [
                 {
@@ -687,7 +741,9 @@ absolute(values.target);
             id: 'TXT',
             label: 'TXT',
             title: 'TXT — произвольная текстовая запись',
-            description: 'Произвольный текст: подтверждение владения доменом и служебные строки.',
+            description: 'Произвольная строка (RFC 1035). ' +
+                'Служит для подтверждения владения доменом, проверки сторонних сервисов и размещения служебных маркеров. ' +
+                'Значение разбивается на сегменты по 255 байт.',
             columns: 2,
             fields: [
                 subdomainField('name', 'Имя записи', '@', 'Поддомен относительно вашего домена или @ для записи в его корне.', '@'),

@@ -8,7 +8,9 @@ function renderMarkup() {
     return fs.readFileSync(VIEW, 'utf8')
         .replace(/@\{[\s\S]*?\}\s*/, '')
         .replace(/@Url\.Action\([^)]*\)/g, '/')
-        .replace(/~(?=\/)/g, '');
+        .replace(/~(?=\/)/g, '')
+        // «@» в разметке записан HTML-сущностью &#64;, чтобы Razor не считал её кодом
+        .replace(/&#64;/g, '@');
 }
 
 function loadDom() {

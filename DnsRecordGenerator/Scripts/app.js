@@ -2,31 +2,7 @@
 
     const state = DnsState.create();
 
-
-    const MAX_LENGTH = {
-        text: 253,
-        number: 10,
-        email: 254,
-        url: 2048,
-        textarea: 8192
-    };
-
-    function maxLengthFor(field) {
-        if (field.maxlength) {
-            return field.maxlength;
-        }
-
-        if (field.type === 'number') {
-            return MAX_LENGTH.number;
-        }
-
-        return MAX_LENGTH[field.type] || MAX_LENGTH.text;
-    }
-
     const elements = {};
-
-
-    const escapeHtml = Validators.escapeHtml;
 
     function currentRecord() {
         return DnsRecords.find(state.recordId);
@@ -36,31 +12,85 @@
         return DnsState.valuesFor(state, record);
     }
 
-    function renderTabs() {
-        elements.tabs.innerHTML = '';
-        DnsRecords.all.forEach(record => {
-            const tab = document.createElement('button');
-            tab.type = 'button';
-            tab.className = 'tab';
-            tab.id = 'tab-' + record.id;
-            tab.textContent = record.label;
-            tab.setAttribute('role', 'tab');
+    // Контракт идентификаторов задан разметкой в Index.cshtml:
+    //   поле      f-{RecordId}-{field}
+    //   ошибка    e-{RecordId}-{field}
+    //   превью    p-{RecordId}-{field}
+    //   панель    panel-{RecordId}
+    //   доп. вывод extra-{RecordId}-{index}
+    // Тест разметки сверяет этот контракт со схемой, поэтому опечатка
+    // приводит к падению сборки, а не к молчаливой поломке поля.
+
+    function fieldId(record, name) {
+        return 'f-' + record.id + '-' + name;
+    }
+
+    function errorId(record, name) {
+        return 'e-' + record.id + '-' + name;
+    }
+
+    function previewId(record, name) {
+        return 'p-' + record.id + '-' + name;
+    }
+
+    function panelOf(record) {
+        return elements.panels[record.id];
+    }
+
+    function controlOf(record, field) {
+        return document.getElementById(fieldId(record, field.name));
+    }
+
+    // У поля-группы (checks) нет одного элемента с идентификатором —
+    // это набор чекбоксов внутри контейнера. Возвращаем их списком,
+    // чтобы обработчики и сброс работали одинаково для всех типов полей.
+    function controlsOf(record, field) {
+        if (field.type === 'checks') {
+            const wrapper = wrapperOf(record, field);
+            return wrapper ? Array.prototype.slice.call(wrapper.querySelectorAll('input[type="checkbox"]')) : [];
+        }
+
+        const control = controlOf(record, field);
+        return control ? [control] : [];
+    }
+
+    function wrapperOf(record, field) {
+        return panelOf(record).querySelector('[data-field="' + field.name + '"]');
+    }
+
+    function setText(element, value) {
+        if (element && element.textContent !== value) {
+            element.textContent = value;
+        }
+    }
+
+    function paintMessage(target, text, kind) {
+        target.textContent = text;
+        target.className = 'dnsr-feedback' + (kind ? ' dnsr-feedback--' + kind : '');
+    }
+
+    function bindTabs() {
+        DnsRecords.all.forEach(function (record) {
+            const tab = elements.tabs[record.id];
+
             tab.addEventListener('click', function () {
                 selectRecord(record.id);
             });
+
             tab.addEventListener('keydown', function (event) {
                 moveTabFocus(event, record.id);
             });
-            elements.tabs.appendChild(tab);
         });
-
-        syncTabs();
     }
 
     function syncTabs() {
         DnsRecords.all.forEach(function (record) {
-            document.getElementById('tab-' + record.id)
-                .setAttribute('aria-selected', String(record.id === state.recordId));
+            const active = record.id === state.recordId;
+            elements.tabs[record.id].setAttribute('aria-selected', String(active));
+            panelOf(record).hidden = !active;
+            if (elements.extraPanels && elements.extraPanels[record.id]) {
+                elements.extraPanels[record.id].hidden = !active;
+            }
         });
     }
 
@@ -70,7 +100,9 @@
             return;
         }
 
-        const ids = DnsRecords.all.map(record => record.id);
+        const ids = DnsRecords.all.map(function (record) {
+            return record.id;
+        });
         const index = ids.indexOf(recordId);
         let target = index;
 
@@ -86,165 +118,13 @@
 
         event.preventDefault();
         selectRecord(ids[target]);
-        document.getElementById('tab-' + ids[target]).focus();
+        elements.tabs[ids[target]].focus();
     }
 
     function selectRecord(recordId) {
         DnsState.selectRecord(state, recordId);
         syncTabs();
-        renderRecord();
-    }
-
-    function renderRecord() {
-        const record = currentRecord();
-        const values = valuesOf(record);
-
-        elements.recordTitle.textContent = record.title;
-        elements.params.className = 'grid grid--' + record.columns;
-        elements.params.innerHTML = record.fields.map(field => renderField(field, values)).join('');
-        elements.description.innerHTML = '<span class="description__title">Зачем нужна запись</span>' +
-            escapeHtml(record.description);
-        elements.keyPanel.innerHTML = record.keyGenerator ? renderKeyGenerator() : '';
-        elements.extraOutputs.innerHTML = renderExtraOutputs(record);
-
-        bindRecord(record);
-        applyVisibility(record);
         update();
-    }
-
-    function renderField(field, values) {
-        if (field.type === 'check') {
-            return '<div class="field " data-field="' + escapeHtml(field.name) + '">' +
-                '<span class="choices"><label class="choice">' +
-                '<input type="checkbox" data-owner="' + escapeHtml(field.name) + '" id="f-' + escapeHtml(field.name) + '">' +
-                escapeHtml(field.label) +
-                '</label></span>' +
-                renderHint(field) +
-                '</div>';
-        }
-
-        return '<div class="field' + (field.span ? ' field--full' : '') + '" data-field="' + escapeHtml(field.name) + '">' +
-            renderLabel(field) +
-            renderControl(field, values) +
-            renderPresets(field) +
-            renderHint(field) +
-            '<p class="field__error" id="e-' + escapeHtml(field.name) + '"></p>' +
-            renderPreview(field) +
-            '</div>';
-    }
-
-    function renderLabel(field) {
-        return '<label class="field__label" for="f-' + escapeHtml(field.name) + '">' + escapeHtml(field.label) +
-            (field.optional ? '' : ' <span class="field__required" aria-hidden="true">*</span>') + '</label>';
-    }
-
-    function renderControl(field, values) {
-        const value = values[field.name];
-        const id = 'f-' + field.name;
-
-        switch (field.type) {
-            case 'select':
-                return '<select id="' + id + '">' + field.options.map(option =>
-                    '<option value="' + escapeHtml(option.value) + '"' +
-                    (option.value === value ? ' selected' : '') + '>' + escapeHtml(option.label) + '</option>'
-                ).join('') + '</select>';
-
-            case 'textarea':
-                return '<textarea id="' + id + '"' +
-                    (field.readonly ? ' readonly' : '') +
-                    (field.rows ? ' rows="' + field.rows + '"' : '') +
-
-                    ' maxlength="' + maxLengthFor(field) + '"' +
-                    ' placeholder="' + escapeHtml(field.placeholder || '') + '">' +
-                    escapeHtml(value) + '</textarea>';
-
-            case 'checks':
-                return '<div class="choices">' + field.options.map(option =>
-                    '<label class="choice">' +
-                    '<input type="checkbox" data-owner="' + escapeHtml(field.name) + '" data-option="' + escapeHtml(option.value) + '"' +
-                    (value[option.value] ? ' checked' : '') + '>' +
-                    escapeHtml(option.label) +
-                    (option.note ? '<span class="choice-note">' + escapeHtml(option.note) + '</span>' : '') +
-                    '</label>'
-                ).join('') + '</div>';
-
-            default:
-                return '<input id="' + id + '" type="' + (field.type === 'number' ? 'number' : 'text') + '"' +
-                    (field.type === 'number' && field.min !== undefined ? ' min="' + field.min + '"' : '') +
-                    (field.type === 'number' && field.max !== undefined ? ' max="' + field.max + '"' : '') +
-                    (field.readonly ? ' readonly' : '') +
-                    (field.suggestions ? ' list="' + id + '-options"' : '') +
-                    ' maxlength="' + maxLengthFor(field) + '"' +
-                    ' value="' + escapeHtml(value) + '"' +
-                    ' placeholder="' + escapeHtml(field.placeholder || '') + '">' +
-                    renderSuggestions(field, id);
-        }
-    }
-
-    function renderSuggestions(field, id) {
-        if (!field.suggestions) {
-            return '';
-        }
-
-        return '<datalist id="' + id + '-options">' + field.suggestions.map(item =>
-            '<option value="' + escapeHtml(item) + '"></option>'
-        ).join('') + '</datalist>';
-    }
-
-    function renderPresets(field) {
-        if (!field.presets) {
-            return '';
-        }
-
-        return '<div class="presets">' + field.presets.map(preset =>
-            '<button type="button" class="preset" data-preset="' + escapeHtml(field.name) + '" data-value="' + escapeHtml(preset) + '">' +
-            escapeHtml(preset) + '</button>'
-        ).join('') + '</div>';
-    }
-
-    function renderHint(field) {
-        return field.hint ? '<p class="field__hint">' + escapeHtml(field.hint) + '</p>' : '';
-    }
-
-    function renderPreview(field) {
-        return field.preview ? '<p class="field__preview" id="p-' + field.name + '"></p>' : '';
-    }
-
-    function renderKeyGenerator() {
-        return '<div class="key-panel">' +
-            '<p class="key-panel__title">Приватный ключ</p>' +
-            '<p class="key-panel__warning">Приватный ключ не публикуется в DNS. Храните его в тайне: ' +
-            'тот, у кого он есть, может подписывать письма от имени вашего домена. ' +
-            'Передайте его своему почтовому серверу файлом.</p>' +
-            '<textarea id="f-private-key" readonly rows="7" placeholder="Ключ ещё не создан"></textarea>' +
-            '<div class="actions">' +
-            '<button type="button" class="btn" id="generate-key">Сгенерировать ключи</button>' +
-            '<button type="button" class="btn btn--outline" id="download-key" disabled>Скачать .pem</button>' +
-            '<button type="button" class="btn btn--outline" id="copy-key" disabled>Скопировать ключ</button>' +
-            '<button type="button" class="btn btn--outline" id="hide-key" disabled>Скрыть ключ</button>' +
-            '</div>' +
-            '<p class="feedback" id="key-feedback"></p>' +
-            '</div>';
-    }
-
-    function renderExtraOutputs(record) {
-        if (!record.extraOutputs) {
-            return '';
-        }
-
-        return record.extraOutputs.map(function (output, index) {
-            return '<div class="block">' +
-                '<h2 class="block__title">' + escapeHtml(output.title) + '</h2>' +
-                '<p class="block__hint">' + escapeHtml(output.hint) + '</p>' +
-                '<div class="result">' +
-                '<textarea class="result__output" id="extra-output-' + index + '" readonly></textarea>' +
-                '<div class="actions">' +
-                '<button type="button" class="btn btn--outline" id="copy-extra-' + index + '">Копировать</button>' +
-                '<span class="feedback" id="extra-feedback-' + index + '"></span>' +
-                '</div>' +
-                '</div>' +
-                '</div>';
-        }).join('');
     }
 
     function changeEventOf(control) {
@@ -252,19 +132,23 @@
     }
 
     function bindRecord(record) {
-        const values = valuesOf(record);
+        const panel = panelOf(record);
 
-        elements.params.querySelectorAll('input, select, textarea').forEach(function (control) {
-            control.addEventListener(changeEventOf(control), function () {
-                onControlChange(record, control);
+        record.fields.forEach(function (field) {
+            controlsOf(record, field).forEach(function (control) {
+                control.addEventListener(changeEventOf(control), function () {
+                    onControlChange(record, field, control);
+                });
             });
         });
 
-        elements.params.querySelectorAll('[data-preset]').forEach(function (button) {
+        panel.querySelectorAll('[data-preset]').forEach(function (button) {
             button.addEventListener('click', function () {
                 const name = button.dataset.preset;
-                values[name] = button.dataset.value;
-                document.getElementById('f-' + name).value = button.dataset.value;
+                // Значения берём здесь, а не при привязке: после «Сбросить»
+                // DnsState создаёт новый объект, и ссылка устарела бы.
+                valuesOf(record)[name] = button.dataset.value;
+                controlOf(record, { name: name }).value = button.dataset.value;
                 update();
             });
         });
@@ -274,25 +158,18 @@
         }
 
         (record.extraOutputs || []).forEach(function (output, index) {
-            document.getElementById('copy-extra-' + index).addEventListener('click', function () {
-                copyText(
-                    document.getElementById('extra-output-' + index),
-                    document.getElementById('extra-feedback-' + index)
-                );
-            });
+            document.getElementById('copy-extra-' + record.id + '-' + index)
+                .addEventListener('click', function () {
+                    copyText(
+                        document.getElementById('extra-' + record.id + '-' + index),
+                        document.getElementById('extra-feedback-' + record.id + '-' + index)
+                    );
+                });
         });
     }
 
-    function onControlChange(record, control) {
+    function onControlChange(record, field, control) {
         const values = valuesOf(record);
-        const name = control.dataset.owner || control.id.replace(/^f-/, '');
-        const field = record.fields.filter(function (item) {
-            return item.name === name;
-        })[0];
-
-        if (!field) {
-            return;
-        }
 
         if (field.type === 'check') {
             values[field.name] = control.checked;
@@ -310,12 +187,13 @@
         const values = valuesOf(record);
 
         record.fields.forEach(function (field) {
-            const input = document.getElementById('f-' + field.name);
-            if (input && field.type === 'check') {
-                input.checked = !!values[field.name];
+            if (field.type === 'check') {
+                controlsOf(record, field).forEach(function (control) {
+                    control.checked = !!values[field.name];
+                });
             }
 
-            const wrapper = elements.params.querySelector('[data-field="' + field.name + '"]');
+            const wrapper = wrapperOf(record, field);
             if (wrapper && field.revealedBy) {
                 wrapper.hidden = !values[field.revealedBy];
             }
@@ -347,29 +225,22 @@
         return null;
     }
 
-    function setText(element, value) {
-            if (element && element.textContent !== value) {
-                element.textContent = value;
-            }
-        }
-
-    function paintField(field, error) {
-        const wrapper = elements.params.querySelector('[data-field="' + field.name + '"]');
+    function paintField(record, field, error) {
+        const wrapper = wrapperOf(record, field);
         if (!wrapper) {
             return;
         }
 
-        setText(document.getElementById('e-' + field.name), error || '');
+        setText(document.getElementById(errorId(record, field.name)), error || '');
 
         if (field.preview) {
-
-            setText(document.getElementById('p-' + field.name), 'Будет создано: ' +
+            setText(document.getElementById(previewId(record, field.name)), 'Будет создано: ' +
                 DnsRecords.fqdn(state.values[state.recordId][field.name], state.domain));
         }
 
         const invalid = !!error;
-        if (wrapper.classList.contains('field--invalid') !== invalid) {
-            wrapper.classList.toggle('field--invalid', invalid);
+        if (wrapper.classList.contains('dnsr-field--invalid') !== invalid) {
+            wrapper.classList.toggle('dnsr-field--invalid', invalid);
         }
     }
 
@@ -384,16 +255,20 @@
 
         record.fields.forEach(function (field) {
             const error = validateField(field, values);
-            paintField(field, error);
+            paintField(record, field, error);
             if (error) {
                 isValid = false;
             }
         });
 
-        const recordError = typeof record.validate === 'function' ? record.validate(values) : null;
-        setText(elements.recordError, recordError || '');
-        if (elements.recordError.hidden === !!recordError) {
-            elements.recordError.hidden = !recordError;
+        // Сигнатура совпадает с build: проверке записи доступны те же данные,
+        // что и сборке. Иначе часть межполевых ограничений проверить нельзя.
+        const recordError = typeof record.validate === 'function'
+            ? record.validate(values, state.domain, record, state.ttl)
+            : null;
+        setText(document.getElementById('error-' + record.id), recordError || '');
+        if (document.getElementById('error-' + record.id).hidden === !!recordError) {
+            document.getElementById('error-' + record.id).hidden = !recordError;
         }
 
         const ready = isValid && !recordError;
@@ -422,8 +297,8 @@
     }
 
     function paintDomain(isValid) {
-        if (elements.domainField.classList.contains('field--invalid') !== !isValid) {
-            elements.domainField.classList.toggle('field--invalid', !isValid);
+        if (elements.domainField.classList.contains('dnsr-field--invalid') !== !isValid) {
+            elements.domainField.classList.toggle('dnsr-field--invalid', !isValid);
         }
 
         setText(elements.domainError, isValid
@@ -435,11 +310,10 @@
         }
     }
 
-
     function paintExtraOutputs(record, values, ready) {
         (record.extraOutputs || []).forEach(function (output, index) {
-            const target = document.getElementById('extra-output-' + index);
-            const button = document.getElementById('copy-extra-' + index);
+            const target = document.getElementById('extra-' + record.id + '-' + index);
+            const button = document.getElementById('copy-extra-' + record.id + '-' + index);
             if (!target || !button) {
                 return;
             }
@@ -455,20 +329,47 @@
         });
     }
 
-    function paintMessage(target, text, kind) {
-        target.textContent = text;
-        target.className = 'feedback' + (kind ? ' feedback--' + kind : '');
+    // Значения по умолчанию — источник истины, а не атрибуты value в разметке.
+    // Это важно для полей, значение которых вычисляется при загрузке страницы:
+    // например, ID политики MTA-STS зависит от текущей даты и в статическом
+    // HTML заморожен на момент сборки.
+    function syncControls(record) {
+        const values = valuesOf(record);
+
+        record.fields.forEach(function (field) {
+            controlsOf(record, field).forEach(function (control) {
+                if (field.type === 'check') {
+                    control.checked = !!values[field.name];
+                } else if (field.type === 'checks') {
+                    control.checked = !!values[field.name][control.dataset.option];
+                } else {
+                    control.value = values[field.name];
+                }
+            });
+        });
     }
 
     function resetRecord() {
         DnsState.resetRecord(state);
-        renderRecord();
+        const record = currentRecord();
+
+        syncControls(record);
+        syncKeyPanel(record);
+        applyVisibility(record);
+
+        // Отчёт о последнем действии тоже относится к старому состоянию:
+        // «Пара ключей создана» после сброса осталось бы врать.
+        const keyFeedback = document.getElementById(record.id + '-key-feedback');
+        if (keyFeedback) {
+            paintMessage(keyFeedback, '', '');
+        }
+
+        update();
     }
 
     function copyText(textarea, feedback) {
         copyString(textarea.value, feedback);
     }
-
 
     function copyString(text, feedback, after) {
         if (!text) {
@@ -485,12 +386,14 @@
             }, 2500);
         };
 
+        // Запасной путь для браузеров без Clipboard API. Поле невидимое,
+        // поэтому оформлено классом, а не inline-стилями: так CSP
+        // остаётся без 'unsafe-inline'.
         const legacyCopy = function () {
             const helper = document.createElement('textarea');
             helper.value = text;
+            helper.className = 'dnsr-copy-helper';
             helper.setAttribute('readonly', '');
-            helper.style.position = 'fixed';
-            helper.style.opacity = '0';
             document.body.appendChild(helper);
             helper.select();
             document.execCommand('copy');
@@ -557,7 +460,8 @@
         URL.revokeObjectURL(url);
     }
 
-
+    // Ключ виден ограниченное время: после генерации, показа или копирования
+    // поле автоматически маскируется, чтобы ключ не остался на экране.
     const KEY_VISIBLE_MS = 60000;
     const KEY_MASKED_TEXT = '•••••••••• (ключ скрыт — нажмите «Показать ключ»)';
     const KEY_MASKED_OUTPUT = '•••••••••• (запись скрыта — нажмите «Показать ключ»)';
@@ -570,66 +474,83 @@
         }
     }
 
-    function bindKeyGenerator(record) {
-        const generateButton = document.getElementById('generate-key');
-        const downloadButton = document.getElementById('download-key');
-        const copyButton = document.getElementById('copy-key');
-        const hideButton = document.getElementById('hide-key');
-        const privateKeyField = document.getElementById('f-private-key');
-        const feedback = document.getElementById('key-feedback');
+    function syncKeyPanel(record) {
+        if (!record.keyGenerator) {
+            return;
+        }
+
         const values = valuesOf(record);
+        const field = document.getElementById(record.id + '-private-key');
+        const hideButton = document.getElementById(record.id + '-hide-key');
+
+        if (!field || !hideButton) {
+            return;
+        }
+
+        if (values.privateKey) {
+            field.value = values.keyMasked ? KEY_MASKED_TEXT : values.privateKey;
+            hideButton.textContent = values.keyMasked ? 'Показать ключ' : 'Скрыть ключ';
+        } else {
+            field.value = '';
+            hideButton.textContent = 'Скрыть ключ';
+        }
+
+        const hasKey = !!values.privateKey;
+        document.getElementById(record.id + '-download-key').disabled = !hasKey;
+        document.getElementById(record.id + '-copy-key').disabled = !hasKey;
+        hideButton.disabled = !hasKey;
+    }
+
+    function bindKeyGenerator(record) {
+        const generateButton = document.getElementById(record.id + '-generate-key');
+        const downloadButton = document.getElementById(record.id + '-download-key');
+        const copyButton = document.getElementById(record.id + '-copy-key');
+        const hideButton = document.getElementById(record.id + '-hide-key');
+        const privateKeyField = document.getElementById(record.id + '-private-key');
+        const feedback = document.getElementById(record.id + '-key-feedback');
 
         clearKeyHideTimer();
 
-        function syncKeyButtons() {
-            const hasKey = !!values.privateKey;
-            downloadButton.disabled = !hasKey;
-            copyButton.disabled = !hasKey;
-            hideButton.disabled = !hasKey;
-        }
-
+        // Значения читаем через valuesOf на каждый вызов: после «Сбросить»
+        // DnsState создаёт новый объект значений, и держать ссылку нельзя.
         function maskKey() {
             clearKeyHideTimer();
-            values.keyMasked = true;
+            valuesOf(record).keyMasked = true;
             privateKeyField.value = KEY_MASKED_TEXT;
             hideButton.textContent = 'Показать ключ';
             update();
         }
 
         function showKey() {
+            const values = valuesOf(record);
             values.keyMasked = false;
             privateKeyField.value = values.privateKey;
             hideButton.textContent = 'Скрыть ключ';
             clearKeyHideTimer();
             keyHideTimer = window.setTimeout(function () {
-
-                if (document.getElementById('f-private-key') === privateKeyField) {
-                    maskKey();
-                    paintMessage(feedback, 'Ключ автоматически скрыт. Он сохранён и доступен для скачивания.', '');
-                }
+                maskKey();
+                paintMessage(feedback, 'Ключ автоматически скрыт. Он сохранён и доступен для скачивания.', '');
             }, KEY_VISIBLE_MS);
             update();
         }
 
-
-        if (values.privateKey) {
-            privateKeyField.value = values.keyMasked ? KEY_MASKED_TEXT : values.privateKey;
-            hideButton.textContent = values.keyMasked ? 'Показать ключ' : 'Скрыть ключ';
-            syncKeyButtons();
+        if (valuesOf(record).privateKey) {
+            syncKeyPanel(record);
         }
 
         hideButton.addEventListener('click', function () {
-            if (!values.privateKey) {
+            if (!valuesOf(record).privateKey) {
                 return;
             }
-            if (privateKeyField.value === values.privateKey) {
-                maskKey();
-            } else {
+            if (valuesOf(record).keyMasked) {
                 showKey();
+            } else {
+                maskKey();
             }
         });
 
         generateButton.addEventListener('click', function () {
+            const values = valuesOf(record);
             const keyLength = parseInt(values.keyLength, 10);
 
             generateButton.disabled = true;
@@ -637,11 +558,12 @@
             paintMessage(feedback, '', '');
 
             generateKeyPair(keyLength).then(function (pair) {
-                values.publicKey = pair.publicKey;
-                values.privateKey = pair.privateKey;
-                document.getElementById('f-publicKey').value = pair.publicKey;
+                const current = valuesOf(record);
+                current.publicKey = pair.publicKey;
+                current.privateKey = pair.privateKey;
+                document.getElementById(fieldId(record, 'publicKey')).value = pair.publicKey;
                 showKey();
-                syncKeyButtons();
+                syncKeyPanel(record);
 
                 paintMessage(feedback, 'Пара ключей ' + keyLength + ' бит создана в браузере и никуда не отправлялась', 'success');
                 update();
@@ -654,6 +576,7 @@
         });
 
         downloadButton.addEventListener('click', function () {
+            const values = valuesOf(record);
             if (!values.privateKey) {
                 return;
             }
@@ -661,6 +584,7 @@
         });
 
         copyButton.addEventListener('click', function () {
+            const values = valuesOf(record);
             if (!values.privateKey) {
                 return;
             }
@@ -677,12 +601,12 @@
             update();
         });
 
-        elements.resetButton.addEventListener('click', resetRecord);
-
         elements.ttl.addEventListener('change', function () {
             DnsState.setTtl(state, elements.ttl.value);
             update();
         });
+
+        elements.resetButton.addEventListener('click', resetRecord);
 
         elements.copyButton.addEventListener('click', function () {
             copyText(elements.output, elements.feedback);
@@ -690,34 +614,52 @@
     }
 
     function cacheElements() {
-        const ids = {
+        const ids = ['domain', 'domainField', 'domainError', 'ttl', 'output', 'feedback',
+            'copyButton', 'resetButton'];
+
+        const mapping = {
             domain: 'domain',
             domainField: 'domain-field',
             domainError: 'domain-error',
             ttl: 'ttl',
-            tabs: 'tabs',
-            recordTitle: 'record-title',
-            recordError: 'record-error',
-            params: 'params',
-            keyPanel: 'key-panel-host',
-            extraOutputs: 'extra-outputs',
             output: 'output',
             feedback: 'output-feedback',
             copyButton: 'copy-button',
-            resetButton: 'reset-button',
-            description: 'record-description'
+            resetButton: 'reset-button'
         };
 
-        Object.keys(ids).forEach(function (key) {
-            elements[key] = document.getElementById(ids[key]);
+        ids.forEach(function (key) {
+            elements[key] = document.getElementById(mapping[key]);
+        });
+
+        elements.tabs = {};
+        elements.panels = {};
+        elements.extraPanels = {};
+
+        DnsRecords.all.forEach(function (record) {
+            elements.tabs[record.id] = document.getElementById('tab-' + record.id);
+            elements.panels[record.id] = document.getElementById('panel-' + record.id);
+
+            if (record.extraOutputs) {
+                elements.extraPanels[record.id] =
+                    document.getElementById('extra-outputs-' + record.id);
+            }
         });
     }
 
     function init() {
         cacheElements();
-        renderTabs();
+        bindTabs();
         bindGlobalEvents();
-        renderRecord();
+
+        DnsRecords.all.forEach(function (record) {
+            bindRecord(record);
+            syncControls(record);
+            applyVisibility(record);
+        });
+
+        syncTabs();
+        update();
     }
 
     document.addEventListener('DOMContentLoaded', init);

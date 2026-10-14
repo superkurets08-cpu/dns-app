@@ -64,23 +64,23 @@ test('clamp() имеет минимальное, предпочтительно�
 suite('Адаптивность: отступы');
 
 test('padding контейнера использует clamp()', () => {
-    const match = css.match(/\.container\s*\{[^}]*padding:\s*[^;]*clamp\(/);
-    ok(match, '.container не использует clamp() для padding');
+    const match = css.match(/\.dnsr-container\s*\{[^}]*padding:\s*[^;]*clamp\(/);
+    ok(match, '.dnsr-container не использует clamp() для padding');
 });
 
 test('padding блоков использует clamp()', () => {
-    const match = css.match(/\.block\s*\{[^}]*padding:\s*clamp\(/);
-    ok(match, '.block не использует clamp() для padding');
+    const match = css.match(/\.dnsr-block\s*\{[^}]*padding:\s*clamp\(/);
+    ok(match, '.dnsr-block не использует clamp() для padding');
 });
 
 test('gap сетки использует clamp()', () => {
-    const match = css.match(/\.grid\s*\{[^}]*gap:\s*clamp\(/);
-    ok(match, '.grid не использует clamp() для gap');
+    const match = css.match(/\.dnsr-grid\s*\{[^}]*gap:\s*clamp\(/);
+    ok(match, '.dnsr-grid не использует clamp() для gap');
 });
 
 test('отступы кнопок используют clamp()', () => {
-    const match = css.match(/\.btn\s*\{[^}]*padding:\s*clamp\(/);
-    ok(match, '.btn не использует clamp() для padding');
+    const match = css.match(/\.dnsr-btn\s*\{[^}]*padding:\s*clamp\(/);
+    ok(match, '.dnsr-btn не использует clamp() для padding');
 });
 
 suite('Адаптивность: сетка');
@@ -88,15 +88,15 @@ suite('Адаптивность: сетка');
 test('grid--3 переключается на 2 колонки при 1100px', () => {
     const content = mediaQueryContent('max-width: 1100px');
     ok(content !== null, 'медиа-запрос 1100px не найден');
-    ok(content.indexOf('.grid--3') !== -1, '.grid--3 не найден в медиа-запросе 1100px');
+    ok(content.indexOf('.dnsr-grid--3') !== -1, '.dnsr-grid--3 не найден в медиа-запросе 1100px');
     ok(content.indexOf('repeat(2') !== -1, 'нет переключения на 2 колонки');
 });
 
 test('grid--2 и grid--3 переключаются на 1 колонку при 768px', () => {
     const content = mediaQueryContent('max-width: 768px');
     ok(content !== null, 'медиа-запрос 768px не найден');
-    ok(content.indexOf('.grid--2') !== -1, '.grid--2 не найден в медиа-запросе 768px');
-    ok(content.indexOf('.grid--3') !== -1, '.grid--3 не найден в медиа-запросе 768px');
+    ok(content.indexOf('.dnsr-grid--2') !== -1, '.dnsr-grid--2 не найден в медиа-запросе 768px');
+    ok(content.indexOf('.dnsr-grid--3') !== -1, '.dnsr-grid--3 не найден в медиа-запросе 768px');
     ok(content.indexOf('minmax(0, 1fr)') !== -1, 'нет переключения на 1 колонку');
 });
 
@@ -108,42 +108,42 @@ test('сетка использует minmax(0, 1fr) для предотвращ
 suite('Адаптивность: вкладки');
 
 test('вкладки имеют overflow-x: auto для мобильных', () => {
-    const match = css.match(/\.tabs\s*\{[^}]*overflow-x:\s*auto/);
-    ok(match, '.tabs не имеет overflow-x: auto');
+    const match = css.match(/\.dnsr-tabs\s*\{[^}]*overflow-x:\s*auto/);
+    ok(match, '.dnsr-tabs не имеет overflow-x: auto');
 });
 
 test('вкладки имеют адаптивный padding через clamp()', () => {
-    const match = css.match(/\.tab\s*\{[^}]*padding:\s*clamp\(/);
-    ok(match, '.tab не использует clamp() для padding');
+    const match = css.match(/\.dnsr-tab\s*\{[^}]*padding:\s*clamp\(/);
+    ok(match, '.dnsr-tab не использует clamp() для padding');
 });
 
 test('вкладки имеют white-space: nowrap', () => {
-    const match = css.match(/\.tab\s*\{[^}]*white-space:\s*nowrap/);
-    ok(match, '.tab не имеет white-space: nowrap');
+    const match = css.match(/\.dnsr-tab\s*\{[^}]*white-space:\s*nowrap/);
+    ok(match, '.dnsr-tab не имеет white-space: nowrap');
 });
 
 suite('Адаптивность: кнопки');
 
 test('кнопки становятся полноширинными на мобильных', () => {
-    ok(hasRuleInMedia('max-width: 768px', '\\.actions \\.btn', 'flex:\\s*1\\s+1\\s+100%'),
-        '.actions .btn не становится полноширинным на мобильных');
+    ok(hasRuleInMedia('max-width: 768px', '\\.dnsr-actions \\.dnsr-btn', 'flex:\\s*1\\s+1\\s+100%'),
+        '.dnsr-actions .dnsr-btn не становится полноширинным на мобильных');
 });
 
 test('пресеты адаптивны на мобильных', () => {
-    ok(hasRuleInMedia('max-width: 768px', '\\.preset', 'flex:\\s*1\\s+1\\s+calc\\(50%'),
-        '.preset не адаптивен на мобильных');
+    ok(hasRuleInMedia('max-width: 768px', '\\.dnsr-preset', 'flex:\\s*1\\s+1\\s+calc\\(50%'),
+        '.dnsr-preset не адаптивен на мобильных');
 });
 
 test('пресеты полноширинные на очень узких экранах', () => {
-    ok(hasRuleInMedia('max-width: 480px', '\\.preset', 'flex:\\s*1\\s+1\\s+100%'),
-        '.preset не полноширинный на ≤480px');
+    ok(hasRuleInMedia('max-width: 480px', '\\.dnsr-preset', 'flex:\\s*1\\s+1\\s+100%'),
+        '.dnsr-preset не полноширинный на ≤480px');
 });
 
 suite('Адаптивность: чекбоксы');
 
 test('чекбоксы выстраиваются вертикально на ≤480px', () => {
-    ok(hasRuleInMedia('max-width: 480px', '\\.choices', 'flex-direction:\\s*column'),
-        '.choices не становится вертикальным на ≤480px');
+    ok(hasRuleInMedia('max-width: 480px', '\\.dnsr-choices', 'flex-direction:\\s*column'),
+        '.dnsr-choices не становится вертикальным на ≤480px');
 });
 
 suite('Адаптивность: мета-теги');
@@ -179,8 +179,8 @@ test('prefers-reduced-motion отключает анимации', () => {
 suite('Адаптивность: контейнер');
 
 test('контейнер имеет max-width', () => {
-    const match = css.match(/\.container\s*\{[^}]*max-width:\s*var\(--container-max\)/);
-    ok(match, '.container не использует --container-max');
+    const match = css.match(/\.dnsr-container\s*\{[^}]*max-width:\s*var\(--container-max\)/);
+    ok(match, '.dnsr-container не использует --container-max');
 });
 
 test('определён --container-max', () => {
@@ -208,52 +208,52 @@ test('кнопки имеют адаптивную высоту через clamp
 suite('Адаптивность: скроллбар');
 
 test('вкладки имеют тонкий скроллбар', () => {
-    const match = css.match(/\.tabs\s*\{[^}]*scrollbar-width:\s*thin/);
-    ok(match, '.tabs не имеет scrollbar-width: thin');
+    const match = css.match(/\.dnsr-tabs\s*\{[^}]*scrollbar-width:\s*thin/);
+    ok(match, '.dnsr-tabs не имеет scrollbar-width: thin');
 });
 
 test('вкладки имеют стилизованный скроллбар для WebKit', () => {
-    ok(css.indexOf('.tabs::-webkit-scrollbar') !== -1, 'нет стилизации скроллбара для WebKit');
+    ok(css.indexOf('.dnsr-tabs::-webkit-scrollbar') !== -1, 'нет стилизации скроллбара для WebKit');
 });
 
 suite('Адаптивность: результат');
 
 test('результат имеет overflow-wrap: break-word', () => {
-    const match = css.match(/\.result__output\s*\{[^}]*overflow-wrap:\s*break-word/);
-    ok(match, '.result__output не имеет overflow-wrap: break-word');
+    const match = css.match(/\.dnsr-result__output\s*\{[^}]*overflow-wrap:\s*break-word/);
+    ok(match, '.dnsr-result__output не имеет overflow-wrap: break-word');
 });
 
 suite('Адаптивность: отступы страницы');
 
 test('отступы заголовка страницы используют clamp()', () => {
-    const match = css.match(/\.page-title\s*\{[^}]*margin:\s*clamp\(/);
-    ok(match, '.page-title не использует clamp() для margin');
+    const match = css.match(/\.dnsr-page-title\s*\{[^}]*margin:\s*clamp\(/);
+    ok(match, '.dnsr-page-title не использует clamp() для margin');
 });
 
 test('отступы page-note используют clamp()', () => {
-    const match = css.match(/\.page-note\s*\{[^}]*margin:\s*clamp\(/);
-    ok(match, '.page-note не использует clamp() для margin');
+    const match = css.match(/\.dnsr-page-note\s*\{[^}]*margin:\s*clamp\(/);
+    ok(match, '.dnsr-page-note не использует clamp() для margin');
 });
 
 suite('Адаптивность: описание');
 
 test('описание имеет адаптивный padding через clamp()', () => {
-    const match = css.match(/\.description\s*\{[^}]*padding:\s*clamp\(/);
-    ok(match, '.description не использует clamp() для padding');
+    const match = css.match(/\.dnsr-description\s*\{[^}]*padding:\s*clamp\(/);
+    ok(match, '.dnsr-description не использует clamp() для padding');
 });
 
 suite('Адаптивность: панель ключей');
 
 test('панель ключей имеет адаптивный padding через clamp()', () => {
-    const match = css.match(/\.key-panel\s*\{[^}]*padding:\s*clamp\(/);
-    ok(match, '.key-panel не использует clamp() для padding');
+    const match = css.match(/\.dnsr-key-panel\s*\{[^}]*padding:\s*clamp\(/);
+    ok(match, '.dnsr-key-panel не использует clamp() для padding');
 });
 
 suite('Адаптивность: предотвращение переполнения');
 
 test('field имеет min-width: 0 для предотвращения переполнения', () => {
-    const match = css.match(/\.field\s*\{[^}]*min-width:\s*0/);
-    ok(match, '.field не имеет min-width: 0');
+    const match = css.match(/\.dnsr-field\s*\{[^}]*min-width:\s*0/);
+    ok(match, '.dnsr-field не имеет min-width: 0');
 });
 
 test('input, select, textarea имеют width: 100%', () => {
@@ -291,7 +291,7 @@ test('нет фиксированных размеров шрифтов в пи�
 });
 
 test('нет фиксированных padding без clamp()', () => {
-    const components = ['.container', '.block', '.btn', '.tab', '.description', '.key-panel'];
+    const components = ['.dnsr-container', '.dnsr-block', '.dnsr-btn', '.dnsr-tab', '.dnsr-description', '.dnsr-key-panel'];
     const problems = [];
     components.forEach(comp => {
         const regex = new RegExp(comp.replace('.', '\\.') + '\\s*\\{[^}]*padding:\\s*\\d+px');
@@ -387,13 +387,13 @@ test('есть focus-visible стили', () => {
 });
 
 test('tab имеет outline для focus-visible', () => {
-    const match = css.match(/\.tab:focus-visible\s*\{[^}]*outline:/);
-    ok(match, '.tab:focus-visible не имеет outline');
+    const match = css.match(/\.dnsr-tab:focus-visible\s*\{[^}]*outline:/);
+    ok(match, '.dnsr-tab:focus-visible не имеет outline');
 });
 
 test('btn имеет outline для focus-visible', () => {
-    const match = css.match(/\.btn:focus-visible\s*\{[^}]*outline:/);
-    ok(match, '.btn:focus-visible не имеет outline');
+    const match = css.match(/\.dnsr-btn:focus-visible\s*\{[^}]*outline:/);
+    ok(match, '.dnsr-btn:focus-visible не имеет outline');
 });
 
 suite('Адаптивность: ARIA');
@@ -448,19 +448,19 @@ test('есть meta description', () => {
 suite('Адаптивность: дополнительные проверки сетки');
 
 test('grid--1 определена', () => {
-    ok(css.indexOf('.grid--1') !== -1, '.grid--1 не определена');
+    ok(css.indexOf('.dnsr-grid--1') !== -1, '.dnsr-grid--1 не определена');
 });
 
 test('grid--2 определена', () => {
-    ok(css.indexOf('.grid--2') !== -1, '.grid--2 не определена');
+    ok(css.indexOf('.dnsr-grid--2') !== -1, '.dnsr-grid--2 не определена');
 });
 
 test('grid--3 определена', () => {
-    ok(css.indexOf('.grid--3') !== -1, '.grid--3 не определена');
+    ok(css.indexOf('.dnsr-grid--3') !== -1, '.dnsr-grid--3 не определена');
 });
 
 test('field--full определена', () => {
-    ok(css.indexOf('.field--full') !== -1, '.field--full не определена');
+    ok(css.indexOf('.dnsr-field--full') !== -1, '.dnsr-field--full не определена');
 });
 
 suite('Адаптивность: проверка целостности');
@@ -474,7 +474,7 @@ test('VIEW файл не пустой', () => {
 });
 
 test('основные компоненты определены', () => {
-    const components = ['.container', '.block', '.grid', '.field', '.btn', '.tab', '.result', '.description'];
+    const components = ['.dnsr-container', '.dnsr-block', '.dnsr-grid', '.dnsr-field', '.dnsr-btn', '.dnsr-tab', '.dnsr-result', '.dnsr-description'];
     components.forEach(comp => {
         ok(css.indexOf(comp) !== -1, comp + ' не найден в CSS');
     });
@@ -495,18 +495,18 @@ test('поля ввода имеют серую рамку, а синюю при
 
 test('чекбоксы нарисованы в стиле HB.BY, а не системным accent-color', () => {
     ok(css.indexOf('accent-color') === -1, 'используется системный accent-color вместо своей отрисовки');
-    const block = css.match(/\.choice input\s*\{[\s\S]*?\n\}/);
-    ok(block, 'нет правила .choice input');
+    const block = css.match(/\.dnsr-choice input\s*\{[\s\S]*?\n\}/);
+    ok(block, 'нет правила .dnsr-choice input');
     if (block) {
         ok(/appearance:\s*none/.test(block[0]), 'чекбокс не переопределён через appearance: none');
         ok(/border-radius/.test(block[0]), 'нет скругления чекбокса');
     }
-    ok(/\.choice input:checked[\s\S]{0,200}background-image:\s*url\(/.test(css),
+    ok(/\.dnsr-choice input:checked[\s\S]{0,200}background-image:\s*url\(/.test(css),
         'нет галочки-картинки при выборе');
 });
 
 test('чекбокс использует фирменный синий', () => {
-    const checked = css.match(/\.choice input:checked\s*\{[\s\S]*?\n\}/);
+    const checked = css.match(/\.dnsr-choice input:checked\s*\{[\s\S]*?\n\}/);
     ok(checked, 'нет правила для выбранного чекбокса');
     if (checked) {
         ok(/background-color:\s*var\(--blue\)/.test(checked[0]),
@@ -569,61 +569,61 @@ test('нет дублирования медиа-запросов', () => {
 suite('Адаптивность: дополнительные тесты для новых функций');
 
 test('вкладки имеют -webkit-overflow-scrolling: touch', () => {
-    const match = css.match(/\.tabs\s*\{[^}]*-webkit-overflow-scrolling:\s*touch/);
-    ok(match, '.tabs не имеет -webkit-overflow-scrolling: touch');
+    const match = css.match(/\.dnsr-tabs\s*\{[^}]*-webkit-overflow-scrolling:\s*touch/);
+    ok(match, '.dnsr-tabs не имеет -webkit-overflow-scrolling: touch');
 });
 
 test('вкладки имеют scrollbar-width: thin', () => {
-    const match = css.match(/\.tabs\s*\{[^}]*scrollbar-width:\s*thin/);
-    ok(match, '.tabs не имеет scrollbar-width: thin');
+    const match = css.match(/\.dnsr-tabs\s*\{[^}]*scrollbar-width:\s*thin/);
+    ok(match, '.dnsr-tabs не имеет scrollbar-width: thin');
 });
 
-test('есть стили для .tabs::-webkit-scrollbar', () => {
-    ok(css.indexOf('.tabs::-webkit-scrollbar') !== -1, 'нет стилей для .tabs::-webkit-scrollbar');
+test('есть стили для .dnsr-tabs::-webkit-scrollbar', () => {
+    ok(css.indexOf('.dnsr-tabs::-webkit-scrollbar') !== -1, 'нет стилей для .dnsr-tabs::-webkit-scrollbar');
 });
 
-test('есть стили для .tabs::-webkit-scrollbar-thumb', () => {
-    ok(css.indexOf('.tabs::-webkit-scrollbar-thumb') !== -1, 'нет стилей для .tabs::-webkit-scrollbar-thumb');
+test('есть стили для .dnsr-tabs::-webkit-scrollbar-thumb', () => {
+    ok(css.indexOf('.dnsr-tabs::-webkit-scrollbar-thumb') !== -1, 'нет стилей для .dnsr-tabs::-webkit-scrollbar-thumb');
 });
 
 test('choice имеет min-height для удобства нажатия', () => {
-    const match = css.match(/\.choice\s*\{[^}]*min-height:\s*\d+px/);
-    ok(match, '.choice не имеет min-height');
+    const match = css.match(/\.dnsr-choice\s*\{[^}]*min-height:\s*\d+px/);
+    ok(match, '.dnsr-choice не имеет min-height');
 });
 
 test('preset имеет min-height для удобства нажатия', () => {
-    const match = css.match(/\.preset\s*\{[^}]*min-height:\s*\d+px/);
-    ok(match, '.preset не имеет min-height');
+    const match = css.match(/\.dnsr-preset\s*\{[^}]*min-height:\s*\d+px/);
+    ok(match, '.dnsr-preset не имеет min-height');
 });
 
 test('choice input имеет flex-shrink: 0', () => {
-    const match = css.match(/\.choice\s+input\s*\{[^}]*flex-shrink:\s*0/);
-    ok(match, '.choice input не имеет flex-shrink: 0');
+    const match = css.match(/\.dnsr-choice\s+input\s*\{[^}]*flex-shrink:\s*0/);
+    ok(match, '.dnsr-choice input не имеет flex-shrink: 0');
 });
 
 test('result__output имеет word-break: break-all', () => {
-    const match = css.match(/\.result__output\s*\{[^}]*word-break:\s*break-all/);
-    ok(match, '.result__output не имеет word-break: break-all');
+    const match = css.match(/\.dnsr-result__output\s*\{[^}]*word-break:\s*break-all/);
+    ok(match, '.dnsr-result__output не имеет word-break: break-all');
 });
 
 test('field__label имеет line-height', () => {
-    const match = css.match(/\.field__label\s*\{[^}]*line-height:/);
-    ok(match, '.field__label не имеет line-height');
+    const match = css.match(/\.dnsr-field__label\s*\{[^}]*line-height:/);
+    ok(match, '.dnsr-field__label не имеет line-height');
 });
 
 test('key-panel__warning имеет line-height', () => {
-    const match = css.match(/\.key-panel__warning\s*\{[^}]*line-height:/);
-    ok(match, '.key-panel__warning не имеет line-height');
+    const match = css.match(/\.dnsr-key-panel__warning\s*\{[^}]*line-height:/);
+    ok(match, '.dnsr-key-panel__warning не имеет line-height');
 });
 
 test('description имеет line-height', () => {
-    const match = css.match(/\.description\s*\{[^}]*line-height:/);
-    ok(match, '.description не имеет line-height');
+    const match = css.match(/\.dnsr-description\s*\{[^}]*line-height:/);
+    ok(match, '.dnsr-description не имеет line-height');
 });
 
 test('page-note имеет line-height', () => {
-    const match = css.match(/\.page-note\s*\{[^}]*line-height:/);
-    ok(match, '.page-note не имеет line-height');
+    const match = css.match(/\.dnsr-page-note\s*\{[^}]*line-height:/);
+    ok(match, '.dnsr-page-note не имеет line-height');
 });
 
 suite('Адаптивность: проверка новых breakpoint');
@@ -633,22 +633,22 @@ test('breakpoint 480px определён', () => {
 });
 
 test('на 480px presets полноширинные', () => {
-    ok(hasRuleInMedia('max-width: 480px', '\\.preset', 'flex:\\s*1\\s+1\\s+100%'),
+    ok(hasRuleInMedia('max-width: 480px', '\\.dnsr-preset', 'flex:\\s*1\\s+1\\s+100%'),
         'presets не полноширинные на 480px');
 });
 
 test('на 480px choices вертикальные', () => {
-    ok(hasRuleInMedia('max-width: 480px', '\\.choices', 'flex-direction:\\s*column'),
+    ok(hasRuleInMedia('max-width: 480px', '\\.dnsr-choices', 'flex-direction:\\s*column'),
         'choices не вертикальные на 480px');
 });
 
 test('на 480px choice полноширинные', () => {
-    ok(hasRuleInMedia('max-width: 480px', '\\.choice', 'width:\\s*100%'),
+    ok(hasRuleInMedia('max-width: 480px', '\\.dnsr-choice', 'width:\\s*100%'),
         'choice не полноширинные на 480px');
 });
 
 test('на 480px tab имеет уменьшенный padding', () => {
-    ok(hasRuleInMedia('max-width: 480px', '\\.tab', 'padding:'),
+    ok(hasRuleInMedia('max-width: 480px', '\\.dnsr-tab', 'padding:'),
         'tab не имеет уменьшенный padding на 480px');
 });
 

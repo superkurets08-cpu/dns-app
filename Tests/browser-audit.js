@@ -381,6 +381,41 @@ async function run(browser, errors, results, check) {
         'запись: ' + dkimOut.substring(0, 120) + ' | pub: ' + pub.substring(0, 40));
     check('DKIM-запись не содержит приватный ключ', !dkimOut.includes('PRIVATE KEY'));
 
+    // ---------- 7c. Базовый набор записей ----------
+    // Раздел 7 уже сгенерировал ключ DKIM, поэтому сбрасываем запись:
+    // проверка состава набора должна начинаться с чистого состояния.
+    await page.locator('#tab-DKIM').click();
+    await page.locator('#reset-button').click();
+    await page.waitForTimeout(200);
+    await page.locator('#tab-MX').click();
+    await page.waitForTimeout(200);
+    await page.locator('#build-set-button').click();
+    await page.waitForTimeout(300);
+    const setOut = await page.locator('#setup-output').inputValue();
+    check('Набор собирается', setOut.trim().length > 0, setOut.slice(0, 60));
+    check('В наборе есть MX', setOut.includes('MX 10'), setOut.slice(0, 60));
+    check('В наборе есть SPF', setOut.includes('v=spf1'));
+    check('В наборе есть DMARC', setOut.includes('v=DMARC1'));
+    check('В наборе есть SRV автонастройки', setOut.includes('_autodiscover._tcp'));
+    check('Набор не содержит сырых переводов строк между записями',
+        setOut.split('\n').every(line => line.trim() !== ''),
+        setOut.split('\n').filter(l => l.trim() === '').length + ' пустых строк');
+    check('Без ключа DKIM не попадает в набор', !setOut.includes('DKIM1'));
+    const setHint = await page.locator('#setup-feedback').textContent();
+    check('Набор сообщает о пропущенном DKIM', setHint.includes('DKIM'), setHint);
+    check('Копирование набора доступно', !(await page.locator('#copy-set-button').isDisabled()));
+
+    await page.locator('#tab-DKIM').click();
+    await page.waitForTimeout(200);
+    await page.locator('#DKIM-generate-key').click();
+    await page.waitForTimeout(4000);
+    await page.locator('#build-set-button').click();
+    await page.waitForTimeout(300);
+    const fullSet = await page.locator('#setup-output').inputValue();
+    check('С ключом DKIM попадает в набор', fullSet.includes('DKIM1'), fullSet.slice(0, 80));
+    const fullHint = await page.locator('#setup-feedback').textContent();
+    check('Набор сообщает о полном составе', fullHint.includes('все 6'), fullHint);
+
     // ---------- 8. CSP реально применяется ----------
     const cspWarnings = errors.filter(e => e.includes('Content Security Policy'));
     check('Браузер не ругается на директивы CSP', cspWarnings.length === 0,

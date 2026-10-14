@@ -2,6 +2,7 @@ const { suite, test, eq, ok } = require('./runner');
 const fs = require('fs');
 const path = require('path');
 const { loadSources } = require('./harness');
+const { DnsState } = loadSources();
 const { loadDom } = require('./dom-harness');
 
 /**
@@ -130,6 +131,92 @@ if (!dom) {
         });
         eq(problems.join(' | '), '');
     });
+
+suite('Базовый набор записей');
+
+test('набор содержит все записи, нужные почтовому домену', () => {
+    eq(R.setupSet.join(','), 'MX,A,SPF,DKIM,DMARC,SRV');
+});
+
+test('набор собирается целиком, когда все поля заполнены', () => {
+    const values = record => {
+        const result = DnsState.valuesFor(DnsState.create(), record);
+        result.domain = 'example.com';
+        if (record.id === 'DKIM') {
+            result.publicKey = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDtest';
+        }
+        return result;
+    };
+
+    const set = R.buildSet('example.com', '3600', values);
+    eq(set.skipped.length, 0, 'пропущены: ' + set.skipped.join(', '));
+    eq(set.lines.length, R.setupSet.length);
+});
+
+test('набор не содержит незаполненных записей и сообщает о них', () => {
+    const values = record => {
+        const result = DnsState.valuesFor(DnsState.create(), record);
+        if (record.id === 'DKIM') {
+            result.publicKey = '';
+        }
+        return result;
+    };
+
+    const set = R.buildSet('example.com', '3600', values);
+    eq(set.skipped.join(','), 'DKIM', 'DKIM без ключа должен быть пропущен');
+    ok(set.lines.indexOf(set.lines.find(l => l.indexOf('DKIM1') !== -1)) === -1,
+        'запись DKIM попала в набор без ключа');
+    eq(set.lines.length, R.setupSet.length - 1);
+});
+
+test('записи набора не содержат сырых переводов строк', () => {
+    // Каждая строка набора должна помещаться в одну запись зоны. Разбиение
+    // на сегменты допустимо внутри TXT-кавычек, но перенос строки между
+    // записями превратился бы в лишнюю запись при вставке в панель.
+    const values = record => {
+        const result = DnsState.valuesFor(DnsState.create(), record);
+        if (record.id === 'DKIM') {
+            result.publicKey = 'MIGfMA0';
+        }
+        return result;
+    };
+
+    const set = R.buildSet('example.com', '3600', values);
+    set.lines.forEach(line => {
+        ok(!/\n/.test(line), 'строка набора содержит перевод строки: ' + JSON.stringify(line));
+    });
+});
+
+test('подсказки полей совпадают со схемой', () => {
+    // datalist статичен, а список подсказок живёт в records.js. Расхождение
+    // не ломает интерфейс, но подсказки молча перестают появляться.
+    const problems = [];
+    R.all.forEach(record => {
+        record.fields.forEach(field => {
+            if (!field.suggestions) {
+                return;
+            }
+            const list = doc.getElementById('f-' + record.id + '-' + field.name + '-options');
+            if (!list) {
+                problems.push(record.id + '.' + field.name + ': нет datalist');
+                return;
+            }
+            const shown = Array.from(list.querySelectorAll('option')).map(o => o.value);
+            const missing = field.suggestions.filter(item => !shown.includes(item));
+            if (missing.length) {
+                problems.push(record.id + '.' + field.name + ': нет подсказок ' +
+                    missing.join(', '));
+            }
+            const extra = shown.filter(item => !field.suggestions.includes(item));
+            if (extra.length) {
+                problems.push(record.id + '.' + field.name + ': лишние подсказки ' +
+                    extra.join(', '));
+            }
+        });
+    });
+    eq(problems.join(' | '), '');
+});
+
 
     test('панель DKIM содержит элементы генерации ключей', () => {
         ['private-key', 'generate-key', 'download-key', 'copy-key', 'hide-key', 'key-feedback']

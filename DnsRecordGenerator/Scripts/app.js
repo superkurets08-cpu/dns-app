@@ -349,6 +349,37 @@
         });
     }
 
+    // Базовый набор собирается из значений всех вкладок: пользователь настраивает
+    // записи в привычном интерфейсе, а копирует их одним действием.
+    function buildSetupSet() {
+        if (!Validators.domain(state.domain)) {
+            paintMessage(elements.setupFeedback,
+                'Сначала укажите корректный домен — он подставляется в каждую запись набора', 'error');
+            return;
+        }
+
+        const set = DnsRecords.buildSet(state.domain, state.ttl, function (record) {
+            return valuesOf(record);
+        });
+
+        elements.setupOutput.value = set.lines.join('\n');
+        elements.copySetButton.disabled = set.lines.length === 0;
+
+        if (set.skipped.length) {
+            const missing = set.skipped.length === 1
+                ? 'заполните её на вкладке «' + set.skipped[0] + '»'
+                : 'заполните их на вкладках «' + set.skipped.join('», «') + '»';
+
+            paintMessage(elements.setupFeedback,
+                'Готово ' + set.lines.length + ' из ' + DnsRecords.setupSet.length +
+                '. Не добавлены: ' + set.skipped.join(', ') + ' — ' + missing + '.', '');
+            return;
+        }
+
+        paintMessage(elements.setupFeedback,
+            'Готовы все ' + set.lines.length + ' записей базового набора', 'success');
+    }
+
     function resetRecord() {
         DnsState.resetRecord(state);
         const record = currentRecord();
@@ -611,11 +642,18 @@
         elements.copyButton.addEventListener('click', function () {
             copyText(elements.output, elements.feedback);
         });
+
+        elements.buildSetButton.addEventListener('click', buildSetupSet);
+
+        elements.copySetButton.addEventListener('click', function () {
+            copyText(elements.setupOutput, elements.setupFeedback);
+        });
     }
 
     function cacheElements() {
         const ids = ['domain', 'domainField', 'domainError', 'ttl', 'output', 'feedback',
-            'copyButton', 'resetButton'];
+            'copyButton', 'resetButton', 'buildSetButton', 'setupOutput', 'setupFeedback',
+            'copySetButton'];
 
         const mapping = {
             domain: 'domain',
@@ -625,7 +663,11 @@
             output: 'output',
             feedback: 'output-feedback',
             copyButton: 'copy-button',
-            resetButton: 'reset-button'
+            resetButton: 'reset-button',
+            buildSetButton: 'build-set-button',
+            setupOutput: 'setup-output',
+            setupFeedback: 'setup-feedback',
+            copySetButton: 'copy-set-button'
         };
 
         ids.forEach(function (key) {

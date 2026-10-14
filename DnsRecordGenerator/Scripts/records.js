@@ -110,6 +110,54 @@ const DnsRecords = (function () {
         };
     };
 
+    // Официальные адреса сторонних сервисов для SPF. Список используется и в
+    // схеме поля, и при сборке записи, чтобы подпись в интерфейсе и
+    // фактический include не разошлись.
+    const SPF_PROVIDERS = [
+        { value: 'google', label: 'Google Workspace', include: 'include:_spf.google.com' },
+        { value: 'm365', label: 'Microsoft 365', include: 'include:spf.protection.outlook.com' },
+        { value: 'yandex', label: 'Яндекс Почта', include: 'include:_spf.yandex.net' },
+        { value: 'mailru', label: 'Mail.ru', include: 'include:mail.ru' },
+        { value: 'zoho', label: 'Zoho Mail', include: 'include:zohomail.com' },
+        { value: 'proton', label: 'Proton Mail', include: 'include:sendmail.xs.ptr.protonmail.com' },
+        { value: 'fastmail', label: 'Fastmail', include: 'include:spf.m.fastmail.com' },
+        { value: 'ses', label: 'Amazon SES', include: 'include:amazonses.com' },
+        { value: 'mailgun', label: 'Mailgun', include: 'include:mailgun.org' },
+        { value: 'sendgrid', label: 'SendGrid', include: 'include:sendgrid.net' }
+    ];
+
+    const spfProviderValue = function () {
+        const value = {};
+        SPF_PROVIDERS.forEach(provider => {
+            value[provider.value] = false;
+        });
+        return value;
+    };
+
+    // Почтовые сервисы требуют собственный селектор в имени DKIM-записи:
+    // сервер проверяет подпись строго по указанному им значению. Свой
+    // селектор здесь не сработает, поэтому известные варианты вынесены
+    // в подсказки.
+    const DKIM_SELECTORS = {
+        'Яндекс Почта': ['yandex', 'yandexdomain', 'mails'],
+        'Mail.ru': ['mailru', 'mail'],
+        'Google Workspace': ['google', 'default', 'selector1', 'selector2'],
+        'Microsoft 365': ['selector1', 'selector2', 'default']
+    };
+
+    // Подсказки для поля селектора: общие значения и требования сервисов
+    const dkimSelectorSuggestions = function () {
+        const values = ['default', 'dkim', 'mail', 'google'];
+        Object.keys(DKIM_SELECTORS).forEach(service => {
+            DKIM_SELECTORS[service].forEach(selector => {
+                if (values.indexOf(selector) === -1) {
+                    values.push(selector);
+                }
+            });
+        });
+        return values;
+    };
+
     const records = [
         {
             id: 'MX',
@@ -233,15 +281,13 @@ const DnsRecords = (function () {
                     label: 'Сторонние почтовые сервисы',
                     type: 'checks',
                     optional: true,
-                    value: { google: false, m365: false, yandex: false, mailgun: false, sendgrid: false },
+                    value: spfProviderValue(),
                     hint: 'Каждый выбранный сервис добавляет свой include: с официальным адресом провайдера.',
-                    options: [
-                        { value: 'google', label: 'Google Workspace', note: 'include:_spf.google.com' },
-                        { value: 'm365', label: 'Microsoft 365', note: 'include:spf.protection.outlook.com' },
-                        { value: 'yandex', label: 'Яндекс Почта', note: 'include:_spf.yandex.net' },
-                        { value: 'mailgun', label: 'Mailgun', note: 'include:mailgun.org' },
-                        { value: 'sendgrid', label: 'SendGrid', note: 'include:sendgrid.net' }
-                    ]
+                    options: SPF_PROVIDERS.map(provider => ({
+                        value: provider.value,
+                        label: provider.label,
+                        note: provider.include
+                    }))
                 },
                 {
                     name: 'mechanisms',
@@ -288,17 +334,9 @@ const DnsRecords = (function () {
                         }
                     });
 
-                const includes = {
-                    google: 'include:_spf.google.com',
-                    m365: 'include:spf.protection.outlook.com',
-                    yandex: 'include:_spf.yandex.net',
-                    mailgun: 'include:mailgun.org',
-                    sendgrid: 'include:sendgrid.net'
-                };
-
-                Object.keys(includes).forEach(key => {
-                    if (values.providers[key]) {
-                        parts.push(includes[key]);
+                SPF_PROVIDERS.forEach(provider => {
+                    if (values.providers[provider.value]) {
+                        parts.push(provider.include);
                     }
                 });
 
@@ -332,8 +370,8 @@ const DnsRecords = (function () {
                     type: 'text',
                     value: 'default',
                     placeholder: 'default',
-                    suggestions: ['default', 'dkim', 'mail', 'google'],
-                    hint: 'Префикс имени записи: <селектор>._domainkey.<домен>. Часто используют default, mail или dkim. Разные селекторы позволяют держать несколько активных ключей одновременно.',
+                    suggestions: dkimSelectorSuggestions(),
+                    hint: 'Префикс имени записи: <селектор>._domainkey.<домен>. Разные селекторы позволяют держать несколько активных ключей одновременно. Почтовые сервисы требуют свой селектор: Яндекс — yandex, Mail.ru — mailru, Google — google, Microsoft 365 — selector1. В подсказках перечислены их значения.',
                     rules: [{ test: Validators.subdomain, message: 'Допустимы латинские буквы, цифры и дефис' }]
                 },
                 {
@@ -770,11 +808,71 @@ absolute(values.target);
         }
     ];
 
+    // Базовый набор записей почтового домена. Порядок соответствует
+    // типичному порядку внесения в панель управления: адрес сервера,
+    // маршрутизация почты, подпись и политика.
+    const SETUP_SET = ['MX', 'A', 'SPF', 'DKIM', 'DMARC', 'SRV'];
+
+    function recordIsValid(record, values, domain, ttl) {
+        let ready = true;
+
+        record.fields.forEach(field => {
+            if (field.type === 'check' || field.type === 'checks') {
+                return;
+            }
+            if (field.revealedBy && !values[field.revealedBy]) {
+                return;
+            }
+            const value = values[field.name];
+            if (Validators.empty(value)) {
+                if (!field.optional) {
+                    ready = false;
+                }
+                return;
+            }
+            (field.rules || []).forEach(rule => {
+                if (!rule.test(value)) {
+                    ready = false;
+                }
+            });
+        });
+
+        if (typeof record.validate === 'function') {
+            ready = ready && record.validate(values, domain, record, ttl) === null;
+        }
+
+        return ready;
+    }
+
+    // Собирает готовые строки всех записей набора. Записи с незаполненными
+    // полями пропускаются и перечисляются отдельно: выдавать половину
+    // набора молча хуже, чем сказать, чего не хватает.
+    function buildSet(domain, ttl, valuesFor) {
+        const lines = [];
+        const skipped = [];
+
+        SETUP_SET.forEach(id => {
+            const record = records.filter(item => item.id === id)[0];
+            const values = valuesFor(record);
+
+            if (!recordIsValid(record, values, domain, ttl)) {
+                skipped.push(record.label);
+                return;
+            }
+
+            lines.push(String(record.build(values, domain, record, ttl)).trim());
+        });
+
+        return { lines: lines, skipped: skipped };
+    }
+
     return {
         all: records,
+        setupSet: SETUP_SET,
         fqdn: fqdn,
         find: function (id) {
             return records.filter(record => record.id === id)[0];
-        }
+        },
+        buildSet: buildSet
     };
 })();

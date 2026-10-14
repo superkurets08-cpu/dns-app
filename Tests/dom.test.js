@@ -59,9 +59,11 @@ if (!dom) {
         fire(box);
     };
 
-    test('отрисованы все 11 вкладок типов записей', () => {
-        eq(doc.querySelectorAll('.dnsr-tab').length, 11);
+    test('отрисованы вкладки типов записей и составного вида', () => {
+        // 11 типов записей плюс «Набор»: он не DNS-запись, но тоже вкладка
+        eq(doc.querySelectorAll('.dnsr-tab').length, 12);
         eq(tab('MX').getAttribute('aria-selected'), 'true');
+        ok(tab('SET'), 'нет вкладки «Набор»');
     });
 
     test('каждая вкладка даёт готовую запись сразу', () => {

@@ -253,9 +253,20 @@ test('отступы page-note используют clamp()', () => {
 
 suite('Адаптивность: описание');
 
-test('описание имеет адаптивный padding через clamp()', () => {
-    const match = css.match(/\.dnsr-description\s*\{[^}]*padding:\s*clamp\(/);
-    ok(match, '.dnsr-description не использует clamp() для padding');
+test('описание типа оформлено подзаголовком без рамки', () => {
+    // Прямоугольник с серым текстом убран: описание стоит под заголовком
+    // типа обычным текстом основного цвета.
+    const rule = /\.dnsr-description\s*\{([^}]*)\}/.exec(css);
+    ok(rule, 'нет стилей описания');
+
+    eq(/background-color/.test(rule[1]), false,
+        'у описания снова появилась заливка прямоугольника');
+    eq(/border-left/.test(rule[1]), false,
+        'у описания снова появилась рамка слева');
+    eq(/padding:/.test(rule[1]), false,
+        'описание снова отступляется как прямоугольник');
+    ok(/color:\s*var\(--text\)/.test(rule[1]),
+        'описание должно быть основного цвета, а не приглушённого');
 });
 
 suite('Адаптивность: панель ключей');
@@ -783,7 +794,7 @@ test('группам флажков ширина не нужна', () => {
 
 test('служебная строка с кнопкой сброса не оформлена карточкой', () => {
     // Карточка ради одной кнопки занимала 144px высотой при кнопке 52px.
-    const section = /<section class="([^"]*)">(\s*<div class="dnsr-actions">\s*<button[^>]*id="reset-button")/;
+    const section = /<section class="([^"]*)" id="reset-block">(\s*<div class="dnsr-actions">\s*<button[^>]*id="reset-button")/;
     const match = section.exec(view);
     ok(match, 'не найдена секция с кнопкой сброса');
     ok(match[1].indexOf('dnsr-block--plain') !== -1,
@@ -824,10 +835,13 @@ test('кнопки блока набора переиспользуют стил
         'кнопка копирования должна использовать общий класс кнопок');
 });
 
-test('блок набора помечен классом блока', () => {
-    const start = view.indexOf('Базовый набор записей');
-    ok(start !== -1, 'нет блока базового набора');
+test('панель «Набор» помечена классом блока и панели', () => {
+    const start = view.indexOf('id="panel-SET"');
+    ok(start !== -1, 'нет панели «Набор»');
     const before = view.lastIndexOf('<section', start);
-    ok(view.slice(before, start).indexOf('class="dnsr-block"') !== -1,
-        'блок набора должен использовать класс блока');
+    const opening = view.slice(before, start);
+    ok(opening.indexOf('class="dnsr-block') !== -1,
+        'панель набора должна использовать класс блока');
+    ok(opening.indexOf('dnsr-record-panel') !== -1,
+        'панель набора должна вести себя как остальные панели');
 });

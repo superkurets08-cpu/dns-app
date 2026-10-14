@@ -534,26 +534,14 @@ select {
     color: var(--red);
 }
 
+/* Описание типа записи — подзаголовок под заголовком типа: без рамки и
+   заливки, текстом основного цвета. */
 .dnsr-description {
-    margin-top: var(--space-20);
-    padding: clamp(12px, 2.5vw, 16px) clamp(14px, 3vw, 20px);
-    border-left: 3px solid var(--blue);
-    background-color: var(--white);
+    margin-bottom: var(--space-20);
+    color: var(--text);
     font-size: var(--fs-s);
     line-height: 1.6;
-}
-
-/* Описание типа записи стоит между заголовком и полями, поэтому
-   отбивается от сетки полей снизу */
-.dnsr-record-panel .dnsr-description {
-    margin-bottom: var(--space-20);
-}
-
-.dnsr-description__title {
-    display: block;
-    margin-bottom: var(--space-8);
-    color: var(--text);
-    font-weight: var(--fw-bold);
+    max-width: 70ch;
 }
 
 .dnsr-key-panel {

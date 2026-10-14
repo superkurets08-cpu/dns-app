@@ -47,7 +47,9 @@ if (!dom) {
             .map(el => el.dataset.record)
             .filter(id => !declared.includes(id));
         eq(panels.join(', '), '', 'лишние панели в разметке');
-        eq(doc.querySelectorAll('.dnsr-tab').length, R.all.length);
+        // Панель «Набор» помечена data-record, чтобы общий обход находил её
+        eq(doc.querySelectorAll('.dnsr-tab').length, R.all.length + 1,
+            'число вкладок не совпадает со схемой плюс составной вид');
     });
 
     test('у каждого поля схемы есть элемент в разметке', () => {
@@ -230,13 +232,16 @@ test('отклик о сборке находится вне скрываемо�
         'отклик должен быть виден до сборки, значит вне скрываемого блока');
 });
 
-test('у блока набора есть подпись и пояснение', () => {
-    const titles = doc.querySelectorAll('.dnsr-block__title');
-    const found = Array.from(titles).some(t => t.textContent.indexOf('Базовый набор') !== -1);
-    ok(found, 'нет заголовка блока базового набора');
+test('панель «Набор» подписана и пояснена', () => {
+    const panel = doc.getElementById('panel-SET');
+    ok(panel, 'нет панели «Набор»');
 
-    const hint = doc.querySelector('.dnsr-block__hint');
-    ok(hint && hint.textContent.trim().length > 40, 'нет пояснения к набору');
+    const title = panel.querySelector('.dnsr-block__title');
+    ok(title && title.textContent.indexOf('Набор') === 0, 'нет заголовка панели');
+
+    const description = panel.querySelector('.dnsr-description');
+    ok(description && description.textContent.trim().length > 40,
+        'нет пояснения к набору');
 });
 
 test('подсказки полей совпадают со схемой', () => {
@@ -269,6 +274,39 @@ test('подсказки полей совпадают со схемой', () =>
     eq(problems.join(' | '), '');
 });
 
+
+    test('описание типа служит подзаголовком и не имеет подписи', () => {
+        // Раньше описание лежало в прямоугольнике с подписью «Назначение записи».
+        // Теперь это подзаголовок под заголовком типа: рамки нет, подпись лишняя.
+        const panels = doc.querySelectorAll('[data-record]');
+        eq(view.indexOf('dnsr-description__title'), -1,
+            'подпись описания вернулась');
+
+        const missing = [];
+        panels.forEach(panel => {
+            const description = panel.querySelector('.dnsr-description');
+            if (!description || description.textContent.trim().length < 40) {
+                missing.push(panel.dataset.record);
+            }
+        });
+        eq(missing.join(','), '', 'панели без описания');
+    });
+
+    test('описание типа идёт сразу под заголовком', () => {
+        const problems = [];
+        doc.querySelectorAll('[data-record]').forEach(panel => {
+            const title = panel.querySelector('.dnsr-block__title');
+            const description = panel.querySelector('.dnsr-description');
+            if (!title || !description) {
+                return;
+            }
+            const following = doc.defaultView.Node.DOCUMENT_POSITION_FOLLOWING;
+            if ((title.compareDocumentPosition(description) & following) === 0) {
+                problems.push(panel.dataset.record + ': описание не после заголовка');
+            }
+        });
+        eq(problems.join(' | '), '');
+    });
 
     test('панель DKIM содержит элементы генерации ключей', () => {
         ['private-key', 'generate-key', 'download-key', 'copy-key', 'hide-key', 'key-feedback']
@@ -357,9 +395,3 @@ test('описания заданы терминно, а не разговорн
     });
 });
 
-test('у всех панелей одинаковый заголовок блока описания', () => {
-    const titles = view.match(/<span class="dnsr-description__title">[^<]*<\/span>/g) || [];
-    eq(titles.length, R.all.length, 'число блоков описания не совпадает с числом типов');
-    const unique = new Set(titles);
-    eq(unique.size, 1, 'заголовки блоков описания различаются: ' + [...unique].join(' / '));
-});

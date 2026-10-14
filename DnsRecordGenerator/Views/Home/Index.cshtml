@@ -60,13 +60,13 @@
         </section>
 
 <!-- Вкладки -->
-<div class="dnsr-tabs" id="tabs" role="tablist" aria-label="Тип DNS-записи"><button type="button" class="dnsr-tab" role="tab" id="tab-MX" aria-selected="true" aria-controls="panel-MX">MX</button><button type="button" class="dnsr-tab" role="tab" id="tab-A" aria-selected="false" aria-controls="panel-A">A/AAAA</button><button type="button" class="dnsr-tab" role="tab" id="tab-SPF" aria-selected="false" aria-controls="panel-SPF">SPF</button><button type="button" class="dnsr-tab" role="tab" id="tab-DKIM" aria-selected="false" aria-controls="panel-DKIM">DKIM</button><button type="button" class="dnsr-tab" role="tab" id="tab-DMARC" aria-selected="false" aria-controls="panel-DMARC">DMARC</button><button type="button" class="dnsr-tab" role="tab" id="tab-MTA-STS" aria-selected="false" aria-controls="panel-MTA-STS">MTA-STS</button><button type="button" class="dnsr-tab" role="tab" id="tab-TLS-RPT" aria-selected="false" aria-controls="panel-TLS-RPT">TLS-RPT</button><button type="button" class="dnsr-tab" role="tab" id="tab-SRV" aria-selected="false" aria-controls="panel-SRV">SRV</button><button type="button" class="dnsr-tab" role="tab" id="tab-CNAME" aria-selected="false" aria-controls="panel-CNAME">CNAME</button><button type="button" class="dnsr-tab" role="tab" id="tab-BIMI" aria-selected="false" aria-controls="panel-BIMI">BIMI</button><button type="button" class="dnsr-tab" role="tab" id="tab-TXT" aria-selected="false" aria-controls="panel-TXT">TXT</button></div>
+<div class="dnsr-tabs" id="tabs" role="tablist" aria-label="Тип DNS-записи"><button type="button" class="dnsr-tab" role="tab" id="tab-MX" aria-selected="true" aria-controls="panel-MX">MX</button><button type="button" class="dnsr-tab" role="tab" id="tab-A" aria-selected="false" aria-controls="panel-A">A/AAAA</button><button type="button" class="dnsr-tab" role="tab" id="tab-SPF" aria-selected="false" aria-controls="panel-SPF">SPF</button><button type="button" class="dnsr-tab" role="tab" id="tab-DKIM" aria-selected="false" aria-controls="panel-DKIM">DKIM</button><button type="button" class="dnsr-tab" role="tab" id="tab-DMARC" aria-selected="false" aria-controls="panel-DMARC">DMARC</button><button type="button" class="dnsr-tab" role="tab" id="tab-MTA-STS" aria-selected="false" aria-controls="panel-MTA-STS">MTA-STS</button><button type="button" class="dnsr-tab" role="tab" id="tab-TLS-RPT" aria-selected="false" aria-controls="panel-TLS-RPT">TLS-RPT</button><button type="button" class="dnsr-tab" role="tab" id="tab-SRV" aria-selected="false" aria-controls="panel-SRV">SRV</button><button type="button" class="dnsr-tab" role="tab" id="tab-CNAME" aria-selected="false" aria-controls="panel-CNAME">CNAME</button><button type="button" class="dnsr-tab" role="tab" id="tab-BIMI" aria-selected="false" aria-controls="panel-BIMI">BIMI</button><button type="button" class="dnsr-tab" role="tab" id="tab-TXT" aria-selected="false" aria-controls="panel-TXT">TXT</button><button type="button" class="dnsr-tab" role="tab" id="tab-SET" aria-selected="false" aria-controls="panel-SET">Набор</button></div>
 
 <!-- Панели типов записей -->
 <section class="dnsr-block dnsr-record-panel" id="panel-MX" data-record="MX">
     <h2 class="dnsr-block__title">MX — приоритетный почтовый сервер</h2>
     <p class="dnsr-field__error" id="error-MX" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Назначение почтового сервера домена (RFC 5321). Определяет порядок пробного доставки: записи с меньшим приоритетом проверяются первыми, при равенстве — по числовой случайности.</div>
+    <div class="dnsr-description">Назначение почтового сервера домена (RFC 5321). Определяет порядок пробного доставки: записи с меньшим приоритетом проверяются первыми, при равенстве — по числовой случайности.</div>
     <div class="dnsr-grid dnsr-grid--2" data-params="MX">
         <div class="dnsr-field" data-field="priority"><label class="dnsr-field__label" for="f-MX-priority">Приоритет <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-MX-priority" type="number" min="0" max="50" maxlength="10" value="10" placeholder="10"><div class="dnsr-presets"><button type="button" class="dnsr-preset" data-preset="priority" data-value="10">10</button><button type="button" class="dnsr-preset" data-preset="priority" data-value="5">5</button><button type="button" class="dnsr-preset" data-preset="priority" data-value="1">1</button><button type="button" class="dnsr-preset" data-preset="priority" data-value="0">0</button></div><p class="dnsr-field__hint">Чем ниже число, тем выше приоритет: при отказе основного сервера почта уйдёт на следующий по приоритету.</p><p class="dnsr-field__error" id="e-MX-priority"></p></div>
         <div class="dnsr-field" data-field="host"><label class="dnsr-field__label" for="f-MX-host">Имя сервера (поддомен)</label><input id="f-MX-host" type="text" maxlength="253" value="mail" placeholder="mail"><p class="dnsr-field__hint">Поддомен относительно вашего домена. Оставьте поле пустым или «&#64;», чтобы запись относилась к самому домену.</p><p class="dnsr-field__error" id="e-MX-host"></p><p class="dnsr-field__preview" id="p-MX-host"></p></div>
@@ -76,7 +76,7 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-A" data-record="A" hidden>
     <h2 class="dnsr-block__title">A/AAAA — сопоставление имени с IP-адресом</h2>
     <p class="dnsr-field__error" id="error-A" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Сопоставление имени с адресом: A — IPv4, AAAA — IPv6 (RFC 1035). Задаёт IP-адрес почтового сервера для входящих SMTP-соединений.</div>
+    <div class="dnsr-description">Сопоставление имени с адресом: A — IPv4, AAAA — IPv6 (RFC 1035). Задаёт IP-адрес почтового сервера для входящих SMTP-соединений.</div>
     <div class="dnsr-grid dnsr-grid--2" data-params="A">
         <div class="dnsr-field" data-field="host"><label class="dnsr-field__label" for="f-A-host">Имя хоста (поддомен)</label><input id="f-A-host" type="text" maxlength="253" value="mail" placeholder="mail"><p class="dnsr-field__hint">Поддомен относительно вашего домена. Оставьте поле пустым или «&#64;», чтобы запись относилась к самому домену.</p><p class="dnsr-field__error" id="e-A-host"></p><p class="dnsr-field__preview" id="p-A-host"></p></div>
         <div class="dnsr-field" data-field="ip"><label class="dnsr-field__label" for="f-A-ip">IPv4-адрес <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-A-ip" type="text" maxlength="253" value="192.168.1.10" placeholder="192.168.1.10"><p class="dnsr-field__hint">Адрес в формате IPv4, например 192.168.1.10. Принимается и публичный, и адрес внутри сети — запись попадёт в зону домена.</p><p class="dnsr-field__error" id="e-A-ip"></p></div>
@@ -88,7 +88,7 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-SPF" data-record="SPF" hidden>
     <h2 class="dnsr-block__title">SPF — перечень серверов, разрешённых отправлять почту</h2>
     <p class="dnsr-field__error" id="error-SPF" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Политика авторизации отправителей (RFC 7208). Одна TXT-запись в корне домена, начинающаяся с v=spf1. Задаёт перечень узлов, имеющих право отправлять почту от имени домена.</div>
+    <div class="dnsr-description">Политика авторизации отправителей (RFC 7208). Одна TXT-запись в корне домена, начинающаяся с v=spf1. Задаёт перечень узлов, имеющих право отправлять почту от имени домена.</div>
     <div class="dnsr-grid dnsr-grid--1" data-params="SPF">
         <div class="dnsr-field" data-field="policy"><label class="dnsr-field__label" for="f-SPF-policy">Политика для неавторизованных отправителей <span class="dnsr-field__required" aria-hidden="true">*</span></label><select id="f-SPF-policy"><option value="~all" selected>~all — SoftFail: принимать, но помечать как подозрительные</option><option value="-all">-all — Fail: отклонять письма с чужих серверы</option><option value="+all">+all — Pass: разрешать любые серверы (небезопасно)</option></select><p class="dnsr-field__hint">Что делать с письмами, пришедшими не с разрешённых серверов. ~all — рекомендуемый компромисс на этапе настройки.</p><p class="dnsr-field__error" id="e-SPF-policy"></p></div>
         <div class="dnsr-field" data-field="ips"><label class="dnsr-field__label" for="f-SPF-ips">IP-адреса серверов</label><input id="f-SPF-ips" type="text" maxlength="253" value="192.168.1.10" placeholder="192.168.1.10, ip6:2001:db8::1"><p class="dnsr-field__hint">Список адресов через запятую: IPv4 подставляется как есть (механизм ip4:), перед IPv6-адресом укажите префикс ip6:. Каждый адрес превращается в свой механизм в записи.</p><p class="dnsr-field__error" id="e-SPF-ips"></p></div>
@@ -100,7 +100,7 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-DKIM" data-record="DKIM" hidden>
     <h2 class="dnsr-block__title">DKIM — цифровая подпись исходящих писем</h2>
     <p class="dnsr-field__error" id="error-DKIM" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Публичная половина пары ключей для проверки подписи исходящих писем (RFC 6376). Приватный ключ не публикуется и не покидает браузер. Значение p= длиннее 255 байт разбивается на несколько сегментов записи, которые DNS-сервер склеивает обратно.</div>
+    <div class="dnsr-description">Публичная половина пары ключей для проверки подписи исходящих писем (RFC 6376). Приватный ключ не публикуется и не покидает браузер. Значение p= длиннее 255 байт разбивается на несколько сегментов записи, которые DNS-сервер склеивает обратно.</div>
     <div class="dnsr-grid dnsr-grid--2" data-params="DKIM">
         <div class="dnsr-field" data-field="selector"><label class="dnsr-field__label" for="f-DKIM-selector">Селектор <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-DKIM-selector" type="text" list="f-DKIM-selector-options" maxlength="253" value="default" placeholder="default"><datalist id="f-DKIM-selector-options"><option value="default"></option><option value="dkim"></option><option value="mail"></option><option value="google"></option><option value="yandex"></option><option value="yandexdomain"></option><option value="mails"></option><option value="mailru"></option><option value="selector1"></option><option value="selector2"></option></datalist><p class="dnsr-field__hint">Префикс имени записи: &lt;селектор&gt;._domainkey.&lt;домен&gt;. Часто используют default, mail или dkim. Разные селекторы позволяют держать несколько активных ключей одновременно.</p><p class="dnsr-field__error" id="e-DKIM-selector"></p></div>
         <div class="dnsr-field" data-field="keyLength"><label class="dnsr-field__label" for="f-DKIM-keyLength">Длина ключа <span class="dnsr-field__required" aria-hidden="true">*</span></label><select id="f-DKIM-keyLength"><option value="2048" selected>2048 бит (рекомендуется)</option><option value="1024">1024 бит (legacy)</option></select><p class="dnsr-field__hint">2048 бит — актуальный стандарт. 1024 бит поддерживается старыми почтовыми системами, но считается недостаточно стойким.</p><p class="dnsr-field__error" id="e-DKIM-keyLength"></p></div>
@@ -112,7 +112,7 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-DMARC" data-record="DMARC" hidden>
     <h2 class="dnsr-block__title">DMARC — политика для писем, не прошедших SPF и DKIM</h2>
     <p class="dnsr-field__error" id="error-DMARC" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Политика обработки результатов проверки SPF и DKIM (RFC 7489). Определяет действие получателя для почты, не прошедшей авторизацию: отклонить, принять с маркировкой спама или только собрать отчёт.</div>
+    <div class="dnsr-description">Политика обработки результатов проверки SPF и DKIM (RFC 7489). Определяет действие получателя для почты, не прошедшей авторизацию: отклонить, принять с маркировкой спама или только собрать отчёт.</div>
     <div class="dnsr-grid dnsr-grid--2" data-params="DMARC">
         <div class="dnsr-field" data-field="policy"><label class="dnsr-field__label" for="f-DMARC-policy">Политика (p) <span class="dnsr-field__required" aria-hidden="true">*</span></label><select id="f-DMARC-policy"><option value="none">none — только собирать отчёты, письма не трогать</option><option value="quarantine" selected>quarantine — помещать в папку «Спам»</option><option value="reject">reject — отклонять полностью</option></select><p class="dnsr-field__hint">Что делать с невалидными письмами. Начинайте с pct=100 и политики none, затем включайте quarantine или reject.</p><p class="dnsr-field__error" id="e-DMARC-policy"></p></div>
         <div class="dnsr-field" data-field="pct"><label class="dnsr-field__label" for="f-DMARC-pct">Процент сообщений (pct) <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-DMARC-pct" type="number" min="0" max="100" maxlength="10" value="100" placeholder="100"><p class="dnsr-field__hint">Доля писем, к которой применяется политика: 100 — ко всем, 10 — к 10%. Позволяет внедрять правило постепенно.</p><p class="dnsr-field__error" id="e-DMARC-pct"></p></div>
@@ -126,7 +126,7 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-MTA-STS" data-record="MTA-STS" hidden>
     <h2 class="dnsr-block__title">MTA-STS — принудительное шифрование при отправке почты</h2>
     <p class="dnsr-field__error" id="error-MTA-STS" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Принудительное шифрование SMTP-соединений (RFC 8461). Запись публикует идентификатор версии политики; сама политика размещается отдельным файлом на веб-сервере домена.</div>
+    <div class="dnsr-description">Принудительное шифрование SMTP-соединений (RFC 8461). Запись публикует идентификатор версии политики; сама политика размещается отдельным файлом на веб-сервере домена.</div>
     <div class="dnsr-grid dnsr-grid--3" data-params="MTA-STS">
         <div class="dnsr-field" data-field="mode"><label class="dnsr-field__label" for="f-MTA-STS-mode">Режим <span class="dnsr-field__required" aria-hidden="true">*</span></label><select id="f-MTA-STS-mode"><option value="testing" selected>testing — собирать отчёты о нарушениях</option><option value="enforce">enforce — отклонять серверы без шифрования</option></select><p class="dnsr-field__hint">Применяется только в policy-файле на сайте домена, в DNS-запись не попадает. В режиме testing нарушения лишь собираются в отчёты.</p><p class="dnsr-field__error" id="e-MTA-STS-mode"></p></div>
         <div class="dnsr-field" data-field="id"><label class="dnsr-field__label" for="f-MTA-STS-id">ID политики <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-MTA-STS-id" type="text" maxlength="253" value="20261014T094316" placeholder="20250601T000000"><p class="dnsr-field__hint">Номер версии политики в формате YYYYMMDDTHHMMSS. Меняйте его при каждом обновлении файла, иначе серверы возьмут старый кэш.</p><p class="dnsr-field__error" id="e-MTA-STS-id"></p></div>
@@ -140,7 +140,7 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-TLS-RPT" data-record="TLS-RPT" hidden>
     <h2 class="dnsr-block__title">TLS-RPT — отчёты о проблемах с шифрованием</h2>
     <p class="dnsr-field__error" id="error-TLS-RPT" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Адрес сбора отчётов о неудачных TLS-соединениях (RFC 8460). Действует совместно с MTA-STS, обеспечивая обратную связь о результатах применения политики.</div>
+    <div class="dnsr-description">Адрес сбора отчётов о неудачных TLS-соединениях (RFC 8460). Действует совместно с MTA-STS, обеспечивая обратную связь о результатах применения политики.</div>
     <div class="dnsr-grid dnsr-grid--1" data-params="TLS-RPT">
         <div class="dnsr-field" data-field="rua"><label class="dnsr-field__label" for="f-TLS-RPT-rua">Адрес для отчётов (rua) <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-TLS-RPT-rua" type="text" maxlength="253" value="tls&#64;example.com" placeholder="tls&#64;example.com"><p class="dnsr-field__hint">Email без префикса mailto:. В записи он будет обёрнут автоматически.</p><p class="dnsr-field__error" id="e-TLS-RPT-rua"></p></div>
     </div>
@@ -149,7 +149,7 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-SRV" data-record="SRV" hidden>
     <h2 class="dnsr-block__title">SRV — адрес и порт сервера службы</h2>
     <p class="dnsr-field__error" id="error-SRV" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Расширенная адресация служб (RFC 2782). Задаёт приоритет, вес, порт и целевое имя узла: IMAP, Submission, автонастройка почтовых клиентов.</div>
+    <div class="dnsr-description">Расширенная адресация служб (RFC 2782). Задаёт приоритет, вес, порт и целевое имя узла: IMAP, Submission, автонастройка почтовых клиентов.</div>
     <div class="dnsr-grid dnsr-grid--3" data-params="SRV">
         <div class="dnsr-field" data-field="service"><label class="dnsr-field__label" for="f-SRV-service">Служба <span class="dnsr-field__required" aria-hidden="true">*</span></label><select id="f-SRV-service"><option value="_autodiscover" selected>_autodiscover — автонастройка почты</option><option value="_imap">_imap — доступ к почте</option><option value="_pop3">_pop3 — старый протокол POP3</option><option value="_smtp">_smtp — отправка писем</option></select><p class="dnsr-field__hint">Имя службы в формате _служба. Определяет, какой почтовый клиент обращается к этой записи.</p><p class="dnsr-field__error" id="e-SRV-service"></p></div>
         <div class="dnsr-field" data-field="protocol"><label class="dnsr-field__label" for="f-SRV-protocol">Протокол <span class="dnsr-field__required" aria-hidden="true">*</span></label><select id="f-SRV-protocol"><option value="_tcp" selected>_tcp</option><option value="_udp">_udp</option></select><p class="dnsr-field__hint">Транспортный протокол службы. Почтовые службы работают поверх TCP.</p><p class="dnsr-field__error" id="e-SRV-protocol"></p></div>
@@ -163,7 +163,7 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-CNAME" data-record="CNAME" hidden>
     <h2 class="dnsr-block__title">CNAME — псевдоним на другой домен</h2>
     <p class="dnsr-field__error" id="error-CNAME" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Каноническое имя (RFC 1034, п. 3.6.2). Допустимо только для чистого имени: наличие иных записей того же имени нарушает требование отсутствия синонимов у одного узла.</div>
+    <div class="dnsr-description">Каноническое имя (RFC 1034, п. 3.6.2). Допустимо только для чистого имени: наличие иных записей того же имени нарушает требование отсутствия синонимов у одного узла.</div>
     <div class="dnsr-grid dnsr-grid--2" data-params="CNAME">
         <div class="dnsr-field" data-field="alias"><label class="dnsr-field__label" for="f-CNAME-alias">Псевдоним (поддомен)</label><input id="f-CNAME-alias" type="text" maxlength="253" value="mail" placeholder="mail"><p class="dnsr-field__hint">Поддомен относительно вашего домена. Оставьте поле пустым или «&#64;», чтобы запись относилась к самому домену.</p><p class="dnsr-field__error" id="e-CNAME-alias"></p><p class="dnsr-field__preview" id="p-CNAME-alias"></p></div>
         <div class="dnsr-field" data-field="target"><label class="dnsr-field__label" for="f-CNAME-target">Целевой домен <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-CNAME-target" type="text" maxlength="253" value="mail.yandex.ru" placeholder="mail.yandex.ru"><p class="dnsr-field__hint">Домен, на который перенаправляется запрос. Обычно это домен стороннего почтового сервиса.</p><p class="dnsr-field__error" id="e-CNAME-target"></p></div>
@@ -173,7 +173,7 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-BIMI" data-record="BIMI" hidden>
     <h2 class="dnsr-block__title">BIMI — логотип в почтовых ящиках получателей</h2>
     <p class="dnsr-field__error" id="error-BIMI" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Брендирование сообщений (RFC 6376-bis). Ссылка на SVG-логотип, отображаемый получателем для почты, прошедшей проверку DMARC. Требует действующей политики DMARC.</div>
+    <div class="dnsr-description">Брендирование сообщений (RFC 6376-bis). Ссылка на SVG-логотип, отображаемый получателем для почты, прошедшей проверку DMARC. Требует действующей политики DMARC.</div>
     <div class="dnsr-grid dnsr-grid--2" data-params="BIMI">
         <div class="dnsr-field" data-field="selector"><label class="dnsr-field__label" for="f-BIMI-selector">Селектор <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-BIMI-selector" type="text" maxlength="253" value="default" placeholder="default"><p class="dnsr-field__hint">Префикс имени записи: &lt;селектор&gt;._bimi.&lt;домен&gt;.</p><p class="dnsr-field__error" id="e-BIMI-selector"></p></div>
         <div class="dnsr-field" data-field="logo"><label class="dnsr-field__label" for="f-BIMI-logo">URL логотипа (l) <span class="dnsr-field__required" aria-hidden="true">*</span></label><input id="f-BIMI-logo" type="text" maxlength="253" value="https://example.com/logo.svg" placeholder="https://example.com/logo.svg"><p class="dnsr-field__hint">Прямая ссылка на SVG-файл логотипа. Нужен формат SVG Tiny Portable/Secure, PNG принимают не все почтовые клиенты.</p><p class="dnsr-field__error" id="e-BIMI-logo"></p></div>
@@ -185,20 +185,37 @@
 <section class="dnsr-block dnsr-record-panel" id="panel-TXT" data-record="TXT" hidden>
     <h2 class="dnsr-block__title">TXT — произвольная текстовая запись</h2>
     <p class="dnsr-field__error" id="error-TXT" hidden></p>
-    <div class="dnsr-description"><span class="dnsr-description__title">Назначение записи</span>Произвольная строка (RFC 1035). Служит для подтверждения владения доменом, проверки сторонних сервисов и размещения служебных маркеров. Значение разбивается на сегменты по 255 байт.</div>
+    <div class="dnsr-description">Произвольная строка (RFC 1035). Служит для подтверждения владения доменом, проверки сторонних сервисов и размещения служебных маркеров. Значение разбивается на сегменты по 255 байт.</div>
     <div class="dnsr-grid dnsr-grid--2" data-params="TXT">
         <div class="dnsr-field" data-field="name"><label class="dnsr-field__label" for="f-TXT-name">Имя записи</label><input id="f-TXT-name" type="text" maxlength="253" value="&#64;" placeholder="&#64;"><p class="dnsr-field__hint">Поддомен относительно вашего домена или &#64; для записи в его корне.</p><p class="dnsr-field__error" id="e-TXT-name"></p><p class="dnsr-field__preview" id="p-TXT-name"></p></div>
         <div class="dnsr-field" data-field="value"><label class="dnsr-field__label" for="f-TXT-value">Значение <span class="dnsr-field__required" aria-hidden="true">*</span></label><textarea id="f-TXT-value" rows="2" maxlength="8192" placeholder="google-site-verification=abc123">google-site-verification=abc123</textarea><p class="dnsr-field__hint">Произвольный текст: токен подтверждения, служебная строка или SPF-политика. Значение оборачивается в кавычки, кавычки и обратные слэши внутри экранируются автоматически, а значения длиннее 255 байт разбиваются на несколько сегментов. Переносы строк недопустимы: строка должна быть одной записью.</p><p class="dnsr-field__error" id="e-TXT-value"></p></div>
     </div>
 </section>
 
-        <section class="dnsr-block dnsr-block--plain">
+        <section class="dnsr-block dnsr-record-panel" id="panel-SET" hidden>
+            <h2 class="dnsr-block__title">Набор — все записи почтового домена сразу</h2>
+            <div class="dnsr-description">Сборка обязательных записей домена одной строкой: адрес сервера,
+                MX, SPF, DKIM, DMARC и автонастройка клиентов. Значения берутся из вкладок типов записей,
+                домен и TTL — из общих полей страницы. Записи с незаполненными полями в набор не попадают.</div>
+            <div class="dnsr-actions">
+                <button type="button" class="dnsr-btn" id="build-set-button">Собрать набор</button>
+                <span class="dnsr-feedback" id="setup-feedback"></span>
+            </div>
+            <div class="dnsr-result" id="setup-result" hidden>
+                <textarea class="dnsr-result__output" id="setup-output" readonly rows="8"></textarea>
+                <div class="dnsr-actions">
+                    <button type="button" class="dnsr-btn dnsr-btn--outline" id="copy-set-button" disabled>Скопировать набор</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="dnsr-block dnsr-block--plain" id="reset-block">
             <div class="dnsr-actions">
                 <button type="button" class="dnsr-btn dnsr-btn--outline" id="reset-button">Сбросить</button>
             </div>
         </section>
 
-        <section class="dnsr-block">
+        <section class="dnsr-block" id="single-result">
             <h2 class="dnsr-block__title">Готовая запись</h2>
             <p class="dnsr-block__hint">
                 Формат «имя — TTL — тип — значение». Вставьте строку в панель управления доменом: для TXT- и
@@ -209,24 +226,6 @@
                 <div class="dnsr-actions">
                     <button type="button" class="dnsr-btn" id="copy-button">Копировать</button>
                     <span class="dnsr-feedback" id="output-feedback"></span>
-                </div>
-            </div>
-        </section>
-        <section class="dnsr-block">
-            <h2 class="dnsr-block__title">Базовый набор записей</h2>
-            <p class="dnsr-block__hint">
-                Все записи, необходимые почтовому домену, одной кнопкой: MX и адрес сервера, SPF,
-                DKIM, DMARC и автонастройка клиентов. Значения берутся из вкладок выше, домен и TTL —
-                из общих полей. Записи с незаполненными полями в набор не попадают.
-            </p>
-            <div class="dnsr-actions">
-                <button type="button" class="dnsr-btn" id="build-set-button">Собрать базовый набор</button>
-                <span class="dnsr-feedback" id="setup-feedback"></span>
-            </div>
-            <div class="dnsr-result" id="setup-result" hidden>
-                <textarea class="dnsr-result__output" id="setup-output" readonly rows="8"></textarea>
-                <div class="dnsr-actions">
-                    <button type="button" class="dnsr-btn dnsr-btn--outline" id="copy-set-button" disabled>Скопировать набор</button>
                 </div>
             </div>
         </section>

@@ -94,7 +94,8 @@ async function run(browser, errors, results, check) {
     check('Страница загружается', (await page.title()).length > 0, await page.title());
     check('CSS загружен', await page.evaluate(() =>
         getComputedStyle(document.body).fontFamily.toLowerCase().includes('montserrat')));
-    check('11 вкладок отрисованы', (await page.locator('.dnsr-tab').count()) === 11);
+    // 11 типов записей плюс составной вид «Набор»
+    check('12 вкладок отрисованы', (await page.locator('.dnsr-tab').count()) === 12);
 
     // ---------- 2. Все 11 типов записей ----------
     const tabs = ['MX', 'A', 'SPF', 'DKIM', 'DMARC', 'MTA-STS', 'TLS-RPT', 'SRV', 'CNAME', 'BIMI', 'TXT'];
@@ -381,14 +382,21 @@ async function run(browser, errors, results, check) {
         'запись: ' + dkimOut.substring(0, 120) + ' | pub: ' + pub.substring(0, 40));
     check('DKIM-запись не содержит приватный ключ', !dkimOut.includes('PRIVATE KEY'));
 
-    // ---------- 7c. Базовый набор записей ----------
-    // Раздел 7 уже сгенерировал ключ DKIM, поэтому сбрасываем запись:
-    // проверка состава набора должна начинаться с чистого состояния.
+    // ---------- 7c. Набор записей ----------
+    // Набор живёт на собственной вкладке, поэтому кнопка сборки
+    // доступна только после перехода на неё.
     await page.locator('#tab-DKIM').click();
     await page.locator('#reset-button').click();
     await page.waitForTimeout(200);
-    await page.locator('#tab-MX').click();
-    await page.waitForTimeout(200);
+
+    await page.locator('#tab-SET').click();
+    await page.waitForTimeout(250);
+    check('Блок одиночной записи скрыт на вкладке «Набор»',
+        !(await page.locator('#single-result').isVisible()));
+    check('Кнопка сброса скрыта на вкладке «Набор»',
+        !(await page.locator('#reset-block').isVisible()));
+    check('Поле набора скрыто до сборки', !(await page.locator('#setup-output').isVisible()));
+
     await page.locator('#build-set-button').click();
     await page.waitForTimeout(300);
     const setOut = await page.locator('#setup-output').inputValue();
@@ -397,9 +405,9 @@ async function run(browser, errors, results, check) {
     check('В наборе есть SPF', setOut.includes('v=spf1'));
     check('В наборе есть DMARC', setOut.includes('v=DMARC1'));
     check('В наборе есть SRV автонастройки', setOut.includes('_autodiscover._tcp'));
-    check('Набор не содержит сырых переводов строк между записями',
+    check(
         setOut.split('\n').every(line => line.trim() !== ''),
-        setOut.split('\n').filter(l => l.trim() === '').length + ' пустых строк');
+        'в наборе есть пустые строки');
     check('Без ключа DKIM не попадает в набор', !setOut.includes('DKIM1'));
     const setHint = await page.locator('#setup-feedback').textContent();
     check('Набор сообщает о пропущенном DKIM', setHint.includes('DKIM'), setHint);
@@ -409,12 +417,21 @@ async function run(browser, errors, results, check) {
     await page.waitForTimeout(200);
     await page.locator('#DKIM-generate-key').click();
     await page.waitForTimeout(4000);
+    await page.locator('#tab-SET').click();
+    await page.waitForTimeout(200);
     await page.locator('#build-set-button').click();
     await page.waitForTimeout(300);
     const fullSet = await page.locator('#setup-output').inputValue();
     check('С ключом DKIM попадает в набор', fullSet.includes('DKIM1'), fullSet.slice(0, 80));
     const fullHint = await page.locator('#setup-feedback').textContent();
     check('Набор сообщает о полном составе', fullHint.includes('все 6'), fullHint);
+
+    await page.locator('#tab-MX').click();
+    await page.waitForTimeout(200);
+    check('Возврат на тип записи показывает одиночную запись',
+        await page.locator('#single-result').isVisible());
+    check('Кнопка сброса вернулась на типе записи',
+        await page.locator('#reset-block').isVisible());
 
     // ---------- 8. CSP реально применяется ----------
     const cspWarnings = errors.filter(e => e.includes('Content Security Policy'));

@@ -2,6 +2,10 @@
 
     const state = DnsState.create();
 
+    // Идентификатор составного вида «Набор». Он не входит в DnsRecords.all,
+    // потому что не является типом DNS-записи и не имеет формата строки.
+    const COMPOSITE_ID = 'SET';
+
     const elements = {};
 
     function currentRecord() {
@@ -70,15 +74,17 @@
     }
 
     function bindTabs() {
-        DnsRecords.all.forEach(function (record) {
-            const tab = elements.tabs[record.id];
+        [COMPOSITE_ID].concat(DnsRecords.all.map(function (record) {
+            return record.id;
+        })).forEach(function (id) {
+            const tab = elements.tabs[id];
 
             tab.addEventListener('click', function () {
-                selectRecord(record.id);
+                selectRecord(id);
             });
 
             tab.addEventListener('keydown', function (event) {
-                moveTabFocus(event, record.id);
+                moveTabFocus(event, id);
             });
         });
     }
@@ -92,6 +98,14 @@
                 elements.extraPanels[record.id].hidden = !active;
             }
         });
+
+        // Составной вид не является типом записи: у него своя панель со своим
+        // результатом, поэтому блок одиночной записи на нём не нужен.
+        const setActive = state.recordId === COMPOSITE_ID;
+        elements.tabs[COMPOSITE_ID].setAttribute('aria-selected', String(setActive));
+        elements.compositePanel.hidden = !setActive;
+        elements.singleResult.hidden = setActive;
+        elements.resetBlock.hidden = setActive;
     }
 
     function moveTabFocus(event, recordId) {
@@ -100,9 +114,10 @@
             return;
         }
 
+        // Порядок вкладок совпадает с порядком на странице: «Набор» идёт последним
         const ids = DnsRecords.all.map(function (record) {
             return record.id;
-        });
+        }).concat([COMPOSITE_ID]);
         const index = ids.indexOf(recordId);
         let target = index;
 
@@ -245,11 +260,17 @@
     }
 
     function update() {
+        const domainValid = Validators.domain(state.domain);
+        paintDomain(domainValid);
+
+        // На составном виде нет типа записи для отрисовки: результат
+        // собирается кнопкой и живёт в собственной панели.
+        if (state.recordId === COMPOSITE_ID) {
+            return;
+        }
+
         const record = currentRecord();
         const values = valuesOf(record);
-        const domainValid = Validators.domain(state.domain);
-
-        paintDomain(domainValid);
 
         let isValid = domainValid;
 
@@ -385,6 +406,11 @@
     }
 
     function resetRecord() {
+        // На составном виде сбрасывать нечего: он собирается заново кнопкой.
+        if (state.recordId === COMPOSITE_ID) {
+            return;
+        }
+
         DnsState.resetRecord(state);
         const record = currentRecord();
 
@@ -657,7 +683,7 @@
     function cacheElements() {
         const ids = ['domain', 'domainField', 'domainError', 'ttl', 'output', 'feedback',
             'copyButton', 'resetButton', 'buildSetButton', 'setupOutput', 'setupFeedback',
-            'copySetButton', 'setupResult'];
+            'copySetButton', 'setupResult', 'compositePanel', 'singleResult', 'resetBlock'];
 
         const mapping = {
             domain: 'domain',
@@ -672,7 +698,10 @@
             setupOutput: 'setup-output',
             setupFeedback: 'setup-feedback',
             copySetButton: 'copy-set-button',
-            setupResult: 'setup-result'
+            setupResult: 'setup-result',
+            resetBlock: 'reset-block',
+            compositePanel: 'panel-SET',
+            singleResult: 'single-result'
         };
 
         ids.forEach(function (key) {
@@ -682,6 +711,7 @@
         elements.tabs = {};
         elements.panels = {};
         elements.extraPanels = {};
+        elements.tabs[COMPOSITE_ID] = document.getElementById('tab-' + COMPOSITE_ID);
 
         DnsRecords.all.forEach(function (record) {
             elements.tabs[record.id] = document.getElementById('tab-' + record.id);

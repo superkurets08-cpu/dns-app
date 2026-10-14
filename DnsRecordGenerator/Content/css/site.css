@@ -485,6 +485,9 @@ select {
 }
 
 .dnsr-result {
+    /* Отступ сверху отделяет поле результата от кнопок над ним: без него
+       нижний край контейнера кнопок смыкался с рамкой поля. */
+    margin-top: var(--space-20);
     padding: clamp(12px, 2.5vw, 16px);
     background-color: var(--white);
     border-radius: var(--radius-input);

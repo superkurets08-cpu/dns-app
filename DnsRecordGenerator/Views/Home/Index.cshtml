@@ -221,13 +221,12 @@
             </p>
             <div class="dnsr-actions">
                 <button type="button" class="dnsr-btn" id="build-set-button">Собрать базовый набор</button>
+                <span class="dnsr-feedback" id="setup-feedback"></span>
             </div>
-            <div class="dnsr-result">
-                <textarea class="dnsr-result__output" id="setup-output" readonly rows="8"
-                    placeholder="Нажмите «Собрать базовый набор», чтобы получить все записи сразу"></textarea>
+            <div class="dnsr-result" id="setup-result" hidden>
+                <textarea class="dnsr-result__output" id="setup-output" readonly rows="8"></textarea>
                 <div class="dnsr-actions">
                     <button type="button" class="dnsr-btn dnsr-btn--outline" id="copy-set-button" disabled>Скопировать набор</button>
-                    <span class="dnsr-feedback" id="setup-feedback"></span>
                 </div>
             </div>
         </section>

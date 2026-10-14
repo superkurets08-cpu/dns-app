@@ -365,6 +365,10 @@
         elements.setupOutput.value = set.lines.join('\n');
         elements.copySetButton.disabled = set.lines.length === 0;
 
+        // Поле набора появляется только после сборки: до нажатия это пустое
+        // место высотой в несколько строк без единой записи.
+        elements.setupResult.hidden = set.lines.length === 0;
+
         if (set.skipped.length) {
             const missing = set.skipped.length === 1
                 ? 'заполните её на вкладке «' + set.skipped[0] + '»'
@@ -653,7 +657,7 @@
     function cacheElements() {
         const ids = ['domain', 'domainField', 'domainError', 'ttl', 'output', 'feedback',
             'copyButton', 'resetButton', 'buildSetButton', 'setupOutput', 'setupFeedback',
-            'copySetButton'];
+            'copySetButton', 'setupResult'];
 
         const mapping = {
             domain: 'domain',
@@ -667,7 +671,8 @@
             buildSetButton: 'build-set-button',
             setupOutput: 'setup-output',
             setupFeedback: 'setup-feedback',
-            copySetButton: 'copy-set-button'
+            copySetButton: 'copy-set-button',
+            setupResult: 'setup-result'
         };
 
         ids.forEach(function (key) {

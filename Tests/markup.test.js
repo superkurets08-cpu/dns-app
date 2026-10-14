@@ -213,6 +213,23 @@ test('кнопка копирования набора изначально за
     eq(doc.getElementById('copy-set-button').disabled, true);
 });
 
+test('поле набора скрыто до сборки', () => {
+    // Пустое поле высотой в несколько строк до нажатия — мёртвое место.
+    eq(doc.getElementById('setup-result').hidden, true,
+        'поле набора показано до сборки');
+});
+
+test('отклик о сборке находится вне скрываемого блока', () => {
+    // Сообщение об ошибке вроде «укажите корректный домен» появляется до
+    // сборки. Если бы оно лежало внутри скрываемого блока, пользователь
+    // его не увидел бы.
+    const feedback = doc.getElementById('setup-feedback');
+    const result = doc.getElementById('setup-result');
+    ok(feedback && result, 'нет элементов блока набора');
+    ok(!result.contains(feedback),
+        'отклик должен быть виден до сборки, значит вне скрываемого блока');
+});
+
 test('у блока набора есть подпись и пояснение', () => {
     const titles = doc.querySelectorAll('.dnsr-block__title');
     const found = Array.from(titles).some(t => t.textContent.indexOf('Базовый набор') !== -1);
